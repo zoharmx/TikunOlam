@@ -1,0 +1,23 @@
+version: '3.8'
+
+# Development-specific docker-compose override
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  tikun-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TIKUN_ENV=development
+      - LOG_LEVEL=DEBUG
+      - API_DOCS_ENABLED=true
+    volumes:
+      # Hot reload - mount source code
+      - ./src:/app/src
+      - ./results:/app/results
+      - ./logs:/app/logs
+    command: ["uvicorn", "tikun.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debugger port

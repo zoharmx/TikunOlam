@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # Frontend React application
+  tikun-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tikun-olam-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - tikun-network
+    depends_on:
+      - tikun-api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Main Tikun Olam API service
+  tikun-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tikun-olam-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Load from .env file
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TIKUN_ENV=${TIKUN_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - OUTPUT_DIR=/app/results
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_DOCS_ENABLED=true
+    volumes:
+      # Persist results
+      - ./results:/app/results
+      # Persist logs
+      - ./logs:/app/logs
+      # Mount source code for development (comment out in production)
+      # - ./src:/app/src
+    networks:
+      - tikun-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tikun-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - tikun-network
+    profiles:
+      - monitoring
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tikun-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=tikun2025
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - tikun-network
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+networks:
+  tikun-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
