@@ -34,9 +34,9 @@
 
 Archivo `.env` configurado con:
 ```bash
-GEMINI_API_KEY=AIzaSyBxSQ6GGcujsIqNznxNQjJt-kKG4Wcuogo ✅
-DEEPSEEK_API_KEY=sk-181034ba355c4292ad7f149d569ce4e7 ✅
-MISTRAL_API_KEY=cqrcNINDiUWdfsRkUk9BBCq52XzphD1V ✅
+GEMINI_API_KEY=AIzaSyBxSQ6GGcujsIqNznxNQjJt-kKG4Wcuogo 
+DEEPSEEK_API_KEY=sk-181034ba355c4292ad7f149d569ce4e7 
+MISTRAL_API_KEY=cqrcNINDiUWdfsRkUk9BBCq52XzphD1V 
 
 # Todos los modelos usando Gemini:
 CHOCHMAH_MODEL=gemini-2.0-flash-exp
