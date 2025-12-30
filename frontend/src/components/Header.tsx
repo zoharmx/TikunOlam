@@ -1,65 +1,31 @@
 function Header() {
   return (
-    <header style={{
-      backgroundColor: 'var(--color-bg-secondary)',
-      borderBottom: '1px solid var(--color-border)',
-      padding: '1.5rem 0',
-      boxShadow: 'var(--shadow-md)'
-    }}>
-      <div className="container">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <div>
-            <h1 style={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, var(--color-keter), var(--color-binah))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: '0.25rem'
-            }}>
-              תיקון עולם
-            </h1>
-            <p style={{
-              color: 'var(--color-text-secondary)',
-              fontSize: '0.875rem'
-            }}>
-              Ethical AI Reasoning Framework
-            </p>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            alignItems: 'center'
-          }}>
-            <div className="badge badge-info">
-              BinahSigma Active
-            </div>
-            <div className="badge badge-success">
-              10 Sefirot
-            </div>
-          </div>
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-4xl font-bold text-gradient mb-2">
+            תיקון עולם
+          </h1>
+          <p className="text-slate-400 text-sm">
+            Ethical AI Reasoning Framework
+          </p>
         </div>
 
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          backgroundColor: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '0.875rem',
-          color: 'var(--color-text-secondary)'
-        }}>
-          Multi-civilizational AI ethical reasoning based on Kabbalistic Sefirot.
-          Detects biases between Western and Eastern perspectives.
+        <div className="flex gap-3">
+          <div className="px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-medium">
+            BinahSigma Active
+          </div>
+          <div className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+            10 Sefirot
+          </div>
         </div>
       </div>
-    </header>
+
+      <div className="glass-panel p-4 rounded-xl text-sm text-slate-300">
+        Multi-civilizational AI ethical reasoning based on Kabbalistic Sefirot.
+        Detects biases between Western and Eastern perspectives.
+      </div>
+    </div>
   );
 }
 

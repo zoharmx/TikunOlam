@@ -5,13 +5,14 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
-dist/
+# dist/  # COMMENTED OUT - We need frontend/dist for deployment
 build/
 
 # Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
 # IDEs
 .vscode/
@@ -19,15 +20,19 @@ ENV/
 *.swp
 *.swo
 
-# Environment
+# Environment files (NEVER include in image)
 .env
 .env.local
+.env.production
+.env.development
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
+test_*.py
+tests/
 
 # Logs
 logs/
@@ -40,17 +45,22 @@ output/
 # Documentation builds
 docs/_build/
 site/
+*.md
+!README.md
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Git
 .git/
 .gitignore
+.gitattributes
 
 # CI/CD
 .github/
+.gitlab-ci.yml
 
 # Temporary
 tmp/
@@ -58,7 +68,35 @@ temp/
 *.tmp
 *.bak
 
-# Docker
-Dockerfile
-docker-compose.yml
+# Docker (exclude Docker files themselves)
+docker-compose*.yml
 .dockerignore
+
+# Frontend (handled in frontend stage)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.cache/
+frontend/coverage/
+
+# Hackathon specific (not needed in production)
+MISSION*.txt
+HACKATHON*.md
+MIGRATION*.md
+VIDEO*.md
+DEVPOST*.md
+objetivo.txt
+setup_gcp.bat
+install_dependencies.bat
+test_vertex_migration.py
+
+# Credentials (CRITICAL - never include)
+*.json
+!monitoring/datadog_dashboard.json
+!monitoring/detection_rules.json
+*.pem
+*.key
+*.crt
+service-account*.json
+credentials*.json
+vertex-ai-key.json

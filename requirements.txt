@@ -4,7 +4,7 @@ pydantic>=2.5.0
 pydantic-settings>=2.1.0
 
 # AI/ML APIs
-google-generativeai>=0.3.0
+google-cloud-aiplatform>=1.38.0
 anthropic>=0.8.0
 openai>=1.10.0
 
@@ -19,6 +19,11 @@ pyyaml>=6.0.1
 # Logging & Monitoring
 structlog>=24.1.0
 python-json-logger>=2.0.7
+
+# Datadog Observability (for hackathon)
+ddtrace>=2.0.0
+datadog-api-client>=2.0.0
+datadog>=0.47.0
 
 # Utilities
 python-dateutil>=2.8.2

@@ -1,0 +1,50 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore
+
+.gcloudignore
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+tests/
+
+# Logs
+logs/
+*.log
+
+# Results (exclude analysis results)
+results/
+
+# Documentation
+*.md
+!README.md
+
+# OS files
+.DS_Store
+
+# CI/CD
+.github/
+
+# Frontend node_modules (we only need dist)
+frontend/node_modules/
+
+# IMPORTANT: DO NOT EXCLUDE frontend/dist - we need it!
+# frontend/dist/  <-- DO NOT UNCOMMENT THIS

@@ -1,0 +1,122 @@
+# Cloud Build configuration for Tikun Olam
+# Google Cloud AI Partner Catalyst - Datadog Challenge
+#
+# This file defines the CI/CD pipeline for deploying Tikun Olam to Cloud Run
+# Triggered on: git push to main branch (configure in Cloud Build trigger)
+
+steps:
+  # ============================================================================
+  # Step 1: Build Docker image
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tikun-olam:latest'
+      - '--cache-from'
+      - 'gcr.io/$PROJECT_ID/tikun-olam:latest'
+      - '.'
+    timeout: 1200s  # 20 minutes for multi-stage build
+
+  # ============================================================================
+  # Step 2: Push image to Google Container Registry
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-latest'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/tikun-olam:latest'
+    waitFor: ['build-image']
+
+  # ============================================================================
+  # Step 3: Deploy to Cloud Run
+  # ============================================================================
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-cloud-run'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'tikun-olam'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/tikun-olam:latest'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'  # Change to --no-allow-unauthenticated for production
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '900s'
+      - '--concurrency'
+      - '80'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - |
+        GCP_PROJECT_ID=$PROJECT_ID,
+        GCP_LOCATION=us-central1,
+        TIKUN_ENV=production,
+        PYTHONUNBUFFERED=1
+      - '--set-secrets'
+      - 'GEMINI_API_KEY=GEMINI_API_KEY:1,DEEPSEEK_API_KEY=DEEPSEEK_API_KEY:1,DATADOG_API_KEY=DATADOG_API_KEY:1,DATADOG_APP_KEY=DATADOG_APP_KEY:1'
+    waitFor: ['push-image-latest']
+
+  # ============================================================================
+  # Step 4: Run smoke test (optional)
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/curl'
+    id: 'smoke-test'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        SERVICE_URL=$$(gcloud run services describe tikun-olam \
+          --region us-central1 \
+          --format 'value(status.url)')
+        echo "Testing service at: $$SERVICE_URL"
+        curl -f $$SERVICE_URL/health || exit 1
+    waitFor: ['deploy-cloud-run']
+
+# ============================================================================
+# Build Configuration
+# ============================================================================
+timeout: '1800s'  # 30 minutes total
+
+options:
+  # Use high-performance machine for faster builds
+  machineType: 'E2_HIGHCPU_8'
+
+  # Logging configuration
+  logging: CLOUD_LOGGING_ONLY
+
+  # Docker layer caching for faster rebuilds
+  substitutionOption: 'ALLOW_LOOSE'
+
+# ============================================================================
+# Substitutions (variables)
+# ============================================================================
+substitutions:
+  _REGION: 'us-central1'
+  _SERVICE_NAME: 'tikun-olam'
+
+# ============================================================================
+# Images to store in Container Registry
+# ============================================================================
+images:
+  - 'gcr.io/$PROJECT_ID/tikun-olam:latest'
+
+# ============================================================================
+# Tags for build identification
+# ============================================================================
+tags:
+  - 'tikun-olam'
+  - 'google-cloud-ai-catalyst'
+  - 'datadog-challenge'
+  - 'vertex-ai'

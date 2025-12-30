@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import type { AnalysisResponse } from '../types';
 import BinahSigmaView from './BinahSigmaView';
 import SefirahCard from './SefirahCard';
@@ -14,54 +15,44 @@ function Results({ results, onReset }: ResultsProps) {
   const { sefirot_results, summary, metadata } = results;
   const isBinahSigma = sefirot_results.binah.mode === 'sigma';
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'low':
-        return 'var(--color-success)';
-      case 'medium':
-        return 'var(--color-warning)';
-      case 'high':
-      case 'critical':
-        return 'var(--color-error)';
-      default:
-        return 'var(--color-text-secondary)';
+  const getDecisionColor = (decision: string) => {
+    if (decision.includes('GO') && !decision.includes('NO')) {
+      return 'text-green-400';
+    } else if (decision.includes('CONDITIONAL')) {
+      return 'text-yellow-400';
+    } else {
+      return 'text-red-400';
     }
   };
 
-  const getDecisionColor = (decision: string) => {
-    if (decision.includes('GO') && !decision.includes('NO')) {
-      return 'var(--color-success)';
-    } else if (decision.includes('CONDITIONAL')) {
-      return 'var(--color-warning)';
-    } else {
-      return 'var(--color-error)';
-    }
+  const getAlignmentColor = (score: number) => {
+    if (score >= 70) return 'text-green-400';
+    if (score >= 50) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   return (
     <div>
-      <div className="card mb-3">
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
+      {/* Header */}
+      <div className="glass-panel p-6 rounded-2xl mb-6">
+        <div className="flex justify-between items-center flex-wrap gap-4">
           <div>
-            <h2 className="text-2xl font-bold">Analysis Results</h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+            <h2 className="text-2xl font-bold text-white">Analysis Results</h2>
+            <p className="text-slate-400 text-sm">
               {results.case_name} • {new Date(metadata.timestamp).toLocaleString()}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="flex gap-3 items-center">
             {isBinahSigma && (
-              <div className="badge badge-info">BinahSigma Active</div>
+              <div className="px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-medium">
+                BinahSigma Active
+              </div>
             )}
             <button
-              className="button button-secondary"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-sm text-slate-300 transition-all"
               onClick={onReset}
             >
+              <RotateCcw className="w-4 h-4" />
               New Analysis
             </button>
           </div>
@@ -69,56 +60,36 @@ function Results({ results, onReset }: ResultsProps) {
       </div>
 
       {/* Tabs */}
-      <div className="card mb-3">
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid var(--color-border)',
-          marginBottom: '1rem'
-        }}>
+      <div className="glass-panel p-6 rounded-2xl">
+        <div className="flex gap-2 border-b border-white/10 mb-6">
           <button
             onClick={() => setActiveTab('summary')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'summary' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              borderBottom: `2px solid ${activeTab === 'summary' ? 'var(--color-accent)' : 'transparent'}`,
-              cursor: 'pointer',
-              fontWeight: 500,
-              transition: 'all 0.2s'
-            }}
+            className={`px-6 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'summary'
+                ? 'text-primary border-primary'
+                : 'text-slate-400 border-transparent hover:text-slate-300'
+            }`}
           >
             Summary
           </button>
           <button
             onClick={() => setActiveTab('sefirot')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'sefirot' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              borderBottom: `2px solid ${activeTab === 'sefirot' ? 'var(--color-accent)' : 'transparent'}`,
-              cursor: 'pointer',
-              fontWeight: 500,
-              transition: 'all 0.2s'
-            }}
+            className={`px-6 py-3 font-medium transition-all border-b-2 ${
+              activeTab === 'sefirot'
+                ? 'text-primary border-primary'
+                : 'text-slate-400 border-transparent hover:text-slate-300'
+            }`}
           >
             10 Sefirot
           </button>
           {isBinahSigma && (
             <button
               onClick={() => setActiveTab('binah')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                background: 'transparent',
-                color: activeTab === 'binah' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                borderBottom: `2px solid ${activeTab === 'binah' ? 'var(--color-accent)' : 'transparent'}`,
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.2s'
-              }}
+              className={`px-6 py-3 font-medium transition-all border-b-2 ${
+                activeTab === 'binah'
+                  ? 'text-primary border-primary'
+                  : 'text-slate-400 border-transparent hover:text-slate-300'
+              }`}
             >
               BinahSigma 🌍
             </button>
@@ -127,86 +98,69 @@ function Results({ results, onReset }: ResultsProps) {
 
         {/* Summary Tab */}
         {activeTab === 'summary' && (
-          <div>
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: 'var(--color-bg-tertiary)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '1.5rem'
-            }}>
-              <h3 className="text-xl font-bold mb-2">Final Decision</h3>
-              <div style={{
-                fontSize: '2rem',
-                fontWeight: 'bold',
-                color: getDecisionColor(summary.final_decision),
-                marginBottom: '0.5rem'
-              }}>
+          <div className="space-y-6">
+            {/* Final Decision */}
+            <div className="p-6 bg-surface/50 rounded-xl border border-white/10">
+              <h3 className="text-xl font-bold text-white mb-3">Final Decision</h3>
+              <div className={`text-3xl font-bold mb-2 ${getDecisionColor(summary.final_decision)}`}>
                 {summary.final_decision}
               </div>
-              <p style={{ color: 'var(--color-text-secondary)' }}>
-                {summary.recommendation}
-              </p>
+              <p className="text-slate-400">{summary.recommendation}</p>
             </div>
 
-            <div className="grid grid-cols-2 mb-3">
-              <div>
-                <h4 className="font-semibold mb-2">Overall Alignment</h4>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: summary.overall_alignment >= 70 ? 'var(--color-success)' :
-                    summary.overall_alignment >= 50 ? 'var(--color-warning)' : 'var(--color-error)'
-                }}>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 bg-surface/30 rounded-xl border border-white/5">
+                <h4 className="font-semibold text-slate-300 mb-2">Overall Alignment</h4>
+                <div className={`text-4xl font-bold ${getAlignmentColor(summary.overall_alignment)}`}>
                   {summary.overall_alignment}%
                 </div>
               </div>
-              <div>
-                <h4 className="font-semibold mb-2">Analysis Duration</h4>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: 'var(--color-accent)'
-                }}>
+              <div className="p-6 bg-surface/30 rounded-xl border border-white/5">
+                <h4 className="font-semibold text-slate-300 mb-2">Analysis Duration</h4>
+                <div className="text-4xl font-bold text-primary">
                   {Math.round(metadata.total_duration_seconds)}s
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 mb-3">
-              <div>
-                <h4 className="font-semibold mb-2">Key Opportunities ({summary.key_opportunities.length})</h4>
-                <ul style={{ paddingLeft: '1.5rem', color: 'var(--color-text-secondary)' }}>
+            {/* Opportunities and Risks */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 bg-surface/30 rounded-xl border border-white/5">
+                <h4 className="font-semibold text-slate-200 mb-3">
+                  Key Opportunities ({summary.key_opportunities.length})
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-400">
                   {summary.key_opportunities.slice(0, 3).map((opp, idx) => (
-                    <li key={idx} style={{ marginBottom: '0.5rem' }}>{opp}</li>
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-green-400">•</span>
+                      <span>{opp}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
-              <div>
-                <h4 className="font-semibold mb-2">Key Risks ({summary.key_risks.length})</h4>
-                <ul style={{ paddingLeft: '1.5rem', color: 'var(--color-text-secondary)' }}>
+              <div className="p-6 bg-surface/30 rounded-xl border border-white/5">
+                <h4 className="font-semibold text-slate-200 mb-3">
+                  Key Risks ({summary.key_risks.length})
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-400">
                   {summary.key_risks.slice(0, 3).map((risk, idx) => (
-                    <li key={idx} style={{ marginBottom: '0.5rem' }}>{risk}</li>
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-red-400">•</span>
+                      <span>{risk}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
 
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'var(--color-bg-tertiary)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.875rem'
-            }}>
-              <h4 className="font-semibold mb-2">Models Used</h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '0.5rem',
-                color: 'var(--color-text-secondary)'
-              }}>
+            {/* Models Used */}
+            <div className="p-6 bg-surface/30 rounded-xl border border-white/5">
+              <h4 className="font-semibold text-slate-200 mb-3">Models Used</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                 {Object.entries(metadata.models_used).map(([sefirah, model]) => (
-                  <div key={sefirah}>
-                    <strong>{sefirah}:</strong> {model}
+                  <div key={sefirah} className="text-slate-400">
+                    <span className="font-medium text-slate-300">{sefirah}:</span> {model}
                   </div>
                 ))}
               </div>
@@ -216,65 +170,65 @@ function Results({ results, onReset }: ResultsProps) {
 
         {/* Sefirot Tab */}
         {activeTab === 'sefirot' && (
-          <div className="grid grid-cols-1" style={{ gap: '1rem' }}>
+          <div className="space-y-4">
             <SefirahCard
               name="Keter"
               subtitle="Crown - Ethical Validation"
-              color="var(--color-keter)"
+              color="#9d4edd"
               data={sefirot_results.keter}
             />
             <SefirahCard
               name="Chochmah"
               subtitle="Wisdom - Pattern Analysis"
-              color="var(--color-chochmah)"
+              color="#3a86ff"
               data={sefirot_results.chochmah}
             />
             <SefirahCard
               name="Binah"
               subtitle="Understanding - Multi-civilizational"
-              color="var(--color-binah)"
+              color="#06d6a0"
               data={sefirot_results.binah}
             />
             <SefirahCard
               name="Chesed"
               subtitle="Kindness - Opportunities"
-              color="var(--color-chesed)"
+              color="#ffd60a"
               data={sefirot_results.chesed}
             />
             <SefirahCard
               name="Gevurah"
               subtitle="Severity - Risks"
-              color="var(--color-gevurah)"
+              color="#e63946"
               data={sefirot_results.gevurah}
             />
             <SefirahCard
               name="Tiferet"
               subtitle="Beauty - Synthesis"
-              color="var(--color-tiferet)"
+              color="#f77f00"
               data={sefirot_results.tiferet}
             />
             <SefirahCard
               name="Netzach"
               subtitle="Victory - Strategy"
-              color="var(--color-netzach)"
+              color="#06ffa5"
               data={sefirot_results.netzach}
             />
             <SefirahCard
               name="Hod"
               subtitle="Glory - Communication"
-              color="var(--color-hod)"
+              color="#457b9d"
               data={sefirot_results.hod}
             />
             <SefirahCard
               name="Yesod"
               subtitle="Foundation - Integration"
-              color="var(--color-yesod)"
+              color="#a8dadc"
               data={sefirot_results.yesod}
             />
             <SefirahCard
               name="Malchut"
               subtitle="Kingdom - Final Decision"
-              color="var(--color-malchut)"
+              color="#6a4c93"
               data={sefirot_results.malchut}
             />
           </div>

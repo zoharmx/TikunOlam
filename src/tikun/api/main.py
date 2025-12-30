@@ -6,11 +6,13 @@ REST API for ethical reasoning analysis.
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import time
 from typing import Dict, Any, Optional
 import uuid
+from pathlib import Path
 
 from tikun.config import get_config
 from tikun.orchestrator import TikunOrchestrator
@@ -38,6 +40,16 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
     # Startup
     logger.info("Starting Tikun Olam API", version="1.0.0")
+
+    # Warmup Vertex AI to eliminate cold-start overhead
+    from tikun.utils.warmup import warmup_vertex_ai
+    logger.info("Initiating Vertex AI warmup...")
+    warmup_success = await warmup_vertex_ai()
+    if warmup_success:
+        logger.info("Vertex AI ready - cold-start overhead eliminated")
+    else:
+        logger.warning("Vertex AI warmup failed - first request may be slow")
+
     yield
     # Shutdown
     logger.info("Shutting down Tikun Olam API")
@@ -117,15 +129,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 # Routes
-@app.get("/", tags=["General"])
-async def root():
-    """Root endpoint."""
-    return {
-        "name": "Tikun Olam API",
-        "version": "1.0.0",
-        "description": "An Ethical Reasoning Architecture for AI Decision Systems",
-        "docs": "/docs" if config.api_docs_enabled else None
-    }
+# Note: Root "/" route is defined at the end of file to serve frontend
 
 
 @app.get("/health", response_model=HealthResponse, tags=["General"])
@@ -176,6 +180,9 @@ async def analyze_scenario(request: AnalysisRequest):
         malchut = sefirot.get('malchut', {})
         final_decision = malchut.get('decision', 'UNKNOWN')
 
+        # Get structured summary
+        summary_dict = orchestrator.get_summary(results)
+
         return AnalysisResponse(
             case_name=metadata.get('case_name', 'unknown'),
             status="completed",
@@ -183,7 +190,9 @@ async def analyze_scenario(request: AnalysisRequest):
             confidence=malchut.get('confidence', 'unknown'),
             duration_seconds=metadata.get('total_duration_seconds', 0),
             results=results if request.include_full_results else None,
-            summary=orchestrator.get_summary(results)
+            summary=summary_dict,
+            sefirot_results=sefirot,
+            metadata=metadata
         )
 
     except ValueError as e:
@@ -341,6 +350,36 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
             "completed_at": time.time(),
             "error": str(e)
         })
+
+
+# Serve frontend static files
+frontend_dist = Path("/app/frontend/dist")
+if frontend_dist.exists():
+    # Mount static assets (CSS, JS, images)
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+
+    # Root route for frontend
+    @app.get("/", include_in_schema=False)
+    async def serve_frontend_root():
+        """Serve React frontend root."""
+        index_file = frontend_dist / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        raise HTTPException(status_code=404, detail="Frontend not found")
+
+    # Catch-all route for SPA (must be last)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        """Serve React frontend for all non-API routes."""
+        # Serve index.html for SPA routing
+        index_file = frontend_dist / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        raise HTTPException(status_code=404, detail="Frontend not found")
+
+    logger.info("Frontend static files mounted", path=str(frontend_dist))
+else:
+    logger.warning("Frontend dist folder not found", path=str(frontend_dist))
 
 
 if __name__ == "__main__":

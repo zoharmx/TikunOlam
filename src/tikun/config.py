@@ -48,6 +48,55 @@ class TikunConfig(BaseSettings):
     )
 
     # ============================================================================
+    # GOOGLE CLOUD PLATFORM (for Vertex AI)
+    # ============================================================================
+
+    gcp_project_id: str = Field(
+        ...,
+        description="Google Cloud Project ID for Vertex AI",
+        min_length=1
+    )
+
+    gcp_location: str = Field(
+        default="us-central1",
+        description="Google Cloud location/region for Vertex AI"
+    )
+
+    # ============================================================================
+    # DATADOG OBSERVABILITY
+    # ============================================================================
+
+    datadog_api_key: Optional[str] = Field(
+        default=None,
+        description="Datadog API Key for metrics and monitoring"
+    )
+
+    datadog_app_key: Optional[str] = Field(
+        default=None,
+        description="Datadog Application Key for API access"
+    )
+
+    datadog_service_name: str = Field(
+        default="tikun-olam",
+        description="Service name for Datadog tracing"
+    )
+
+    datadog_statsd_host: str = Field(
+        default="127.0.0.1",
+        description="Datadog StatsD host"
+    )
+
+    datadog_statsd_port: int = Field(
+        default=8125,
+        description="Datadog StatsD port"
+    )
+
+    datadog_trace_port: int = Field(
+        default=8126,
+        description="Datadog trace agent port"
+    )
+
+    # ============================================================================
     # ENVIRONMENT & LOGGING
     # ============================================================================
 
@@ -56,18 +105,18 @@ class TikunConfig(BaseSettings):
     output_dir: Path = Field(default=Path("./results"))
 
     # ============================================================================
-    # MODEL CONFIGURATION (Defaults)
+    # MODEL CONFIGURATION (Defaults - Vertex AI Models)
     # ============================================================================
-    
-    keter_model: str = Field(default="gemini-2.0-flash-exp")
+
+    keter_model: str = Field(default="gemini-2.5-pro")
     chochmah_model: str = Field(default="claude-3-5-sonnet-20241022")
-    binah_west_model: str = Field(default="gemini-2.0-flash-exp")
+    binah_west_model: str = Field(default="gemini-2.5-pro")
     binah_east_model: str = Field(default="deepseek-chat")
-    chesed_model: str = Field(default="gemini-2.0-flash-exp")
-    gevurah_model: str = Field(default="gemini-2.0-flash-exp")
+    chesed_model: str = Field(default="gemini-2.5-pro")
+    gevurah_model: str = Field(default="gemini-2.5-pro")
     tiferet_model: str = Field(default="claude-3-5-sonnet-20241022")
-    netzach_model: str = Field(default="gemini-2.0-flash-exp")
-    hod_model: str = Field(default="gemini-2.0-flash-exp")
+    netzach_model: str = Field(default="gemini-2.5-pro")
+    hod_model: str = Field(default="gemini-2.5-pro")
     yesod_model: str = Field(default="claude-3-5-sonnet-20241022")
     malchut_model: str = Field(default="claude-3-5-sonnet-20241022")
 
@@ -113,7 +162,7 @@ class TikunConfig(BaseSettings):
 
     def get_model_for_sefirah(self, sefirah: str) -> str:
         model_attr = f"{sefirah.lower()}_model"
-        return getattr(self, model_attr, "gemini-2.0-flash-exp")
+        return getattr(self, model_attr, "gemini-1.5-pro")
 
 # Global config
 _config: Optional[TikunConfig] = None

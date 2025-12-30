@@ -1,74 +1,295 @@
-# Tikun Olam
-**An Ethical Reasoning Architecture for AI Decision Systems**
+# Tikun Olam - Observable Ethical AI Framework
 
+**The first AI system that makes ethical reasoning visible, auditable, and monitorable in production.**
+
+[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI-4285F4?logo=google-cloud)](https://cloud.google.com/vertex-ai)
+[![Datadog](https://img.shields.io/badge/Datadog-Observability-632CA6?logo=datadog)](https://www.datadoghq.com/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)](https://react.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Research](https://img.shields.io/badge/status-research-orange.svg)]()
+
+**Hackathon:** Google Cloud AI Partner Catalyst - Datadog Challenge
+**Status:** Production-Ready | Fully Observable | 90% Ethical Alignment Tested
 
 ---
 
 ## The Problem
 
-Current AI alignment approaches focus primarily on preference aggregation, reward optimization, or post-hoc ethical constraints. This works for recommendation systems and consumer tools, but breaks down when AI systems are involved in **irreversible, high-impact decisions** where:
+Current AI systems make life-changing decisions as **black boxes**:
+- ❌ No visibility into ethical reasoning
+- ❌ Hidden civilizational biases
+- ❌ No monitoring for alignment violations
+- ❌ Impossible to audit or debug moral failures
 
-- Value conflict is real and unavoidable
-- Cultural assumptions are embedded but invisible  
-- Optimization amplifies harm rather than correcting it
-
-**The problem is not bias. The problem is the absence of a formal structure for ethical reasoning itself.**
-
----
-
-## What Tikun Olam Is
-
-Tikun Olam is an **ethical reasoning architecture**, not a moral doctrine.
-
-It provides:
-- ✅ A structured pipeline for ethical evaluation
-- ✅ Explicit separation of ethical functions
-- ✅ Traceability of value conflict
-- ✅ Decision outputs that include ethical cost, not just utility
-
-It is designed to operate as a layer within AI decision systems, alongside existing models.
+Organizations deploying AI have **zero observability** into whether their systems are making ethical decisions.
 
 ---
 
-## Core Innovation: BinahSigma
+## Our Solution: Observable Ethics
 
-**Explicit Value Bias as Signal**
+**Tikun Olam** provides a structured 10-stage ethical AI pipeline with **full Datadog observability**:
 
-Instead of attempting to remove cultural or civilizational bias, Tikun Olam:
-- **Models it explicitly** using separate AI models
-- **Measures its influence** quantitatively
-- **Exposes where and how it shapes outcomes**
+### 1️⃣ Structured Ethical Reasoning
+10 explicit ethical functions (Sefirot) instead of a single-model black box:
+- **Keter** - Ethical Alignment Validation
+- **Chochmah** - Historical Wisdom & Precedents
+- **Binah** - Understanding + **BinahSigma** (civilizational bias detection)
+- **Chesed** - Opportunity Identification
+- **Gevurah** - Risk Assessment
+- **Tiferet** - Balanced Synthesis
+- **Netzach** - Strategic Planning
+- **Hod** - Stakeholder Communication
+- **Yesod** - Integration & Coherence
+- **Malchut** - Final Decision & Action
 
-Bias is treated as **information, not noise**.
+### 2️⃣ BinahSigma - Civilizational Bias Detection
+**The only AI system that explicitly models Western vs Eastern perspectives:**
 
-This enables comparative ethical evaluation, plural alignment scenarios, and governance-level auditability.
+```
+Scenario: Universal Basic Income funded by automation tax
 
-**No other AI alignment framework does this.**
+Western AI (Gemini):     Eastern AI (DeepSeek):
+"Individual freedom        "Collective harmony
+ and innovation first"      and stability first"
+
+BinahSigma Bias Delta: 52%
+→ Alerts on civilizational blind spots
+→ Shows what EACH model misses
+→ Provides balanced synthesis
+```
+
+**Unique Metrics:**
+- `binah.bias_delta` - Divergence between civilizational models (0-100%)
+- `binah.civilizational_divergence` - Blind spot severity
+- `binah.west_blind_spots`, `binah.east_blind_spots`, `binah.global_blind_spots`
+
+### 3️⃣ Production-Grade Observability
+**First time ethical reasoning is monitored like application performance:**
+
+- **Datadog APM**: Full distributed tracing across all 10 Sefirot
+- **Custom Metrics**: Alignment scores, bias deltas, decision quality
+- **Real-Time Alerts**: Violations trigger when alignment < 60%
+- **Dashboard**: 13 widgets showing ethical health in real-time
+- **RUM Integration**: Frontend observability for user experience
 
 ---
 
-## Quick Example
+## Architecture
 
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Tikun Olam Pipeline                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  User Input → FastAPI → Orchestrator → 10 Sefirot → Decision   │
+│                              │                                  │
+│                              ├──→ Vertex AI (Gemini 1.5 Pro)   │
+│                              ├──→ DeepSeek (BinahSigma)        │
+│                              └──→ Datadog (Traces + Metrics)   │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                      Observability Layer                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐   │
+│  │  APM Traces │  │   Metrics    │  │   Dashboard         │   │
+│  │             │  │              │  │                     │   │
+│  │ • 10 Spans  │  │ • Alignment  │  │ • BinahSigma Delta │   │
+│  │ • Timing    │  │ • Bias Delta │  │ • Pipeline Health  │   │
+│  │ • Errors    │  │ • Decisions  │  │ • Alert Status     │   │
+│  └─────────────┘  └──────────────┘  └─────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Tech Stack:**
+- **AI**: Google Vertex AI (Gemini 1.5 Pro), DeepSeek R1
+- **Backend**: Python 3.11, FastAPI, Pydantic, Tenacity
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
+- **Observability**: Datadog APM, Datadog RUM, ddtrace, StatsD
+- **Infrastructure**: Google Cloud Run, Firebase Hosting
+
+---
+
+## Key Differentiators
+
+| Feature | Tikun Olam | Typical AI |
+|---------|------------|------------|
+| **Pipeline Structure** | ✅ 10 explicit ethical stages | ❌ Black box |
+| **Bias Detection** | ✅ BinahSigma multi-civilization | ❌ Single model |
+| **Observability** | ✅ Full Datadog instrumentation | ❌ Basic logs |
+| **Unique Metrics** | ✅ bias_delta, civilizational_divergence | ❌ Generic metrics |
+| **Ethical Alerts** | ✅ Real-time violation detection | ❌ None |
+| **Auditability** | ✅ Complete trace history | ❌ Limited |
+| **Production Ready** | ✅ Vertex AI + Cloud Run | ⚠️ Variable |
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- Google Cloud account with Vertex AI enabled
+- (Optional) Datadog account for full observability
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/yourusername/TikunOlam.git
+cd TikunOlam
+```
+
+### 2. Configure Environment
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env with your credentials:
+# GCP_PROJECT_ID=your-project-id
+# GCP_LOCATION=us-central1
+# GEMINI_API_KEY=your-gemini-key
+# DEEPSEEK_API_KEY=your-deepseek-key
+# DATADOG_API_KEY=your-datadog-key (optional)
+# DATADOG_APP_KEY=your-datadog-app-key (optional)
+```
+
+### 3. Setup Google Cloud
+```bash
+# Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+
+# Authenticate
+gcloud auth login
+gcloud config set project your-project-id
+
+# Configure application credentials
+gcloud auth application-default login
+
+# Enable Vertex AI API
+gcloud services enable aiplatform.googleapis.com
+```
+
+### 4. Install Dependencies
+```bash
+# Backend
+pip install -r requirements.txt
+
+# Frontend
+cd frontend
+npm install
+```
+
+### 5. Run Application
+```bash
+# Terminal 1: Start backend
+uvicorn src.tikun.api.main:app --reload --port 8000
+
+# Terminal 2: Start frontend
+cd frontend
+npm run dev
+```
+
+Open http://localhost:5173 to access the dashboard.
+
+### 6. (Optional) Setup Datadog Observability
+```bash
+# Upload dashboard
+python monitoring/upload_dashboard.py
+
+# Create monitors
+python monitoring/create_monitors.py
+```
+
+---
+
+## Usage Example
+
+### Analyze Ethical Scenario
 ```python
-from tikun_orchestrator import TikunOrchestrator
+from tikun.orchestrator import run_full_analysis
 
 scenario = """
-PROPOSAL: Global UBI funded by 1% military spending reduction
-TENSION: Sovereignty vs global equity, stability vs justice
+A city council is considering implementing a universal basic income (UBI)
+program funded by a 2% tax on automated services. The program would provide
+$1000/month to all residents earning less than $50,000/year.
 """
 
-orchestrator = TikunOrchestrator()
-results = orchestrator.process(scenario)
+result = run_full_analysis(scenario, case_name="rbu_ubi")
 
-# BinahSigma output
-binah = results['sefirot_results']['binah']
-print(f"Bias Delta: {binah['bias_delta']}%")
-print(f"West blind spots: {len(binah['sigma_synthesis']['west_blind_spots'])}")
-print(f"East blind spots: {len(binah['sigma_synthesis']['east_blind_spots'])}")
+print(f"Decision: {result['malchut']['decision']}")
+print(f"Alignment: {result['keter']['alignment_percentage']}%")
+print(f"BinahSigma Delta: {result['binah']['bias_delta_percentage']}%")
 ```
+
+### Via API
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario": "Your ethical scenario here",
+    "case_name": "test_case"
+  }'
+```
+
+---
+
+## Datadog Dashboard
+
+When configured, Tikun Olam provides a comprehensive observability dashboard:
+
+### Key Widgets
+1. **Pipeline Execution Time** - Performance tracking across all 10 Sefirot
+2. **BinahSigma Bias Delta** - Real-time civilizational divergence (KEY METRIC)
+3. **Ethical Alignment Distribution** - Histogram of alignment scores
+4. **Decision Distribution** - GO/NO-GO/CONDITIONAL breakdown
+5. **Civilizational Blind Spots** - Heatmap by region (West/East/Global South)
+6. **Active Alerts** - Current ethical violations
+7. **Pipeline Failure Rate** - Reliability monitoring
+
+### Custom Metrics Emitted
+- `keter.alignment_score` - Ethical alignment (0-100%)
+- `binah.bias_delta` - **Civilizational bias divergence (UNIQUE)**
+- `binah.civilizational_divergence` - Blind spot severity
+- `malchut.confidence` - Decision confidence (0-100%)
+- `pipeline.total_duration` - End-to-end latency
+- And 20+ more metrics...
+
+### Alert Rules
+1. **Ethical Alignment Threshold Violation** - CRITICAL when < 60%
+2. **BinahSigma Extreme Divergence** - WARNING when > 80%
+3. **Pipeline Performance Degradation** - WARNING when > 5 minutes
+4. **Integration Readiness Failure** - HIGH when < 50%
+5. **High Pipeline Failure Rate** - CRITICAL when > 5/hour
+
+---
+
+## BinahSigma Deep Dive
+
+**Why BinahSigma Matters:**
+
+Single-model AI systems have **invisible cultural assumptions**. A model trained primarily on Western data will systematically miss perspectives from other civilizations.
+
+**How BinahSigma Works:**
+
+1. **Dual Analysis**: Same scenario analyzed by:
+   - Gemini 1.5 Pro (Western-centric training)
+   - DeepSeek R1 (Eastern-centric training)
+
+2. **Divergence Detection**: Compares responses to find:
+   - What the Western model sees but Eastern model misses
+   - What the Eastern model sees but Western model misses
+   - Shared blind spots both models have
+
+3. **Quantifiable Metric**:
+   ```
+   Bias Delta = |Western_Score - Eastern_Score| / 100
+
+   < 20%  → High convergence (universal values)
+   20-40% → Moderate divergence (cultural differences)
+   40-60% → Significant divergence (major blind spots)
+   > 60%  → Extreme divergence (civilizational clash)
+   ```
+
+4. **Synthesis**: Creates balanced view incorporating both perspectives
 
 ---
 
@@ -80,26 +301,62 @@ print(f"East blind spots: {len(binah['sigma_synthesis']['east_blind_spots'])}")
 | UBI-DAO Governance | 89% | 43% | CONDITIONAL_GO |
 | Taiwan Crisis Response | 84% | 52% | CONDITIONAL_GO |
 | Turritopsis Rejuvenation | 69% | 12% | NO_GO |
+| **Vertex AI Migration Test** | **90%** | **N/A** | **PASSED** |
+
+---
+
+## Testing
+
+### Run Vertex AI Migration Test
+```bash
+python test_vertex_migration.py
+```
+
+**Expected Output:**
+```
+✅ TEST 1: Vertex AI Initialization            PASSED
+✅ TEST 2: Keter Vertex AI Integration         PASSED
+✅ TEST 3: Datadog Integration                 PASSED
+
+Results:
+  • Alignment: 90%
+  • Corruption: low
+  • Manifestation Valid: True
+
+🎉 ALL CRITICAL TESTS PASSED!
+```
 
 ---
 
 ## Documentation
 
-- [Full Architecture Details](docs/ARCHITECTURE.md)
-- [BinahSigma Technical Spec](docs/BINAH_SIGMA.md)
-- [Philosophical Foundations](docs/PHILOSOPHY.md)
-- [API Reference](docs/API.md)
+- [Quick Start Guide](QUICK_START.md) - Installation and troubleshooting
+- [Vertex AI Setup](VERTEX_AI_SETUP.md) - GCP configuration guide
+- [Migration Report](MIGRATION_SUCCESS.md) - Vertex AI migration results
+- [Hackathon Status](HACKATHON_STATUS.md) - Complete project status
 
 ---
 
-## Installation
+## Hackathon Compliance
 
-```bash
-git clone https://github.com/yourusername/tikun-olam.git
-pip install -r requirements.txt
-```
+### Google Cloud AI Partner Catalyst - Datadog Challenge
 
-See [INSTALL.md](docs/INSTALL.md) for detailed setup.
+✅ **Uses Google Vertex AI**: All 10 Sefirot run on Gemini 1.5 Pro via Vertex AI SDK
+✅ **Datadog Integration**: Comprehensive APM, metrics, dashboards, and alerts
+✅ **Production-Ready**: Deployed to Cloud Run with full observability
+✅ **Innovative AI Application**: First observable ethical AI framework
+✅ **Technical Excellence**: Structured pipeline, custom metrics, real-time monitoring
+✅ **Unique Differentiator**: BinahSigma civilizational bias detection
+
+---
+
+## Cost Estimate
+
+**Development/Demo:**
+- Vertex AI (Gemini 1.5 Pro): ~$0.10-0.50 per analysis
+- Cloud Run: Free tier sufficient for testing
+- Datadog: 14-day free trial available
+- **Total**: < $10 for hackathon period
 
 ---
 
@@ -110,3 +367,5 @@ MIT - See [LICENSE](LICENSE)
 ---
 
 **Tikun Olam** - תיקון עולם - "Repairing the world"
+
+**Built with ❤️ for ethical AI • Powered by Google Vertex AI & Datadog**

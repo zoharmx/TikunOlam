@@ -4,6 +4,7 @@ export interface AnalysisRequest {
   case_name?: string;
   verbose?: boolean;
   auto_export?: boolean;
+  include_full_results?: boolean;
 }
 
 export interface AnalysisResponse {
@@ -189,6 +190,10 @@ export interface JobResponse {
 export interface JobStatusResponse {
   job_id: string;
   status: string;
-  result?: AnalysisResponse;
+  case_name: string;
+  created_at: number;
+  completed_at?: number;
+  duration_seconds?: number;
+  results?: any; // Full results dict from backend
   error?: string;
 }

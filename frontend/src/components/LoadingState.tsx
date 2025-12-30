@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
 const sefirotStages = [
-  { name: 'Keter', label: 'Crown - Ethical Validation', color: 'var(--color-keter)' },
-  { name: 'Chochmah', label: 'Wisdom - Pattern Analysis', color: 'var(--color-chochmah)' },
-  { name: 'Binah', label: 'Understanding - Multi-civilizational', color: 'var(--color-binah)' },
-  { name: 'Chesed', label: 'Kindness - Opportunities', color: 'var(--color-chesed)' },
-  { name: 'Gevurah', label: 'Severity - Risks', color: 'var(--color-gevurah)' },
-  { name: 'Tiferet', label: 'Beauty - Synthesis', color: 'var(--color-tiferet)' },
-  { name: 'Netzach', label: 'Victory - Strategy', color: 'var(--color-netzach)' },
-  { name: 'Hod', label: 'Glory - Communication', color: 'var(--color-hod)' },
-  { name: 'Yesod', label: 'Foundation - Integration', color: 'var(--color-yesod)' },
-  { name: 'Malchut', label: 'Kingdom - Decision', color: 'var(--color-malchut)' },
+  { id: 'keter', name: 'Keter', label: 'Ethical Validation', color: '#ffffff' },
+  { id: 'chochmah', name: 'Chochmah', label: 'Wisdom Analysis', color: '#3a86ff' },
+  { id: 'binah', name: 'Binah', label: 'Context & Bias', color: '#06d6a0' },
+  { id: 'chesed', name: 'Chesed', label: 'Opportunities', color: '#ffd60a' },
+  { id: 'gevurah', name: 'Gevurah', label: 'Risk Assessment', color: '#e63946' },
+  { id: 'tiferet', name: 'Tiferet', label: 'Synthesis', color: '#f77f00' },
+  { id: 'netzach', name: 'Netzach', label: 'Strategy', color: '#06ffa5' },
+  { id: 'hod', name: 'Hod', label: 'Communication', color: '#457b9d' },
+  { id: 'yesod', name: 'Yesod', label: 'Integration', color: '#a8dadc' },
+  { id: 'malchut', name: 'Malchut', label: 'Final Decision', color: '#6a4c93' },
 ];
 
 function LoadingState() {
@@ -19,100 +20,71 @@ function LoadingState() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStage((prev) => (prev + 1) % sefirotStages.length);
-    }, 2000);
-
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="card" style={{ textAlign: 'center' }}>
-      <h2 className="text-2xl font-bold mb-3">Analyzing Scenario...</h2>
-      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
-        Processing through the 10 Sefirot ethical reasoning pipeline
+    <div className="w-full max-w-3xl glass-panel p-12 rounded-2xl flex flex-col items-center">
+      <div className="relative mb-12">
+        <div className="absolute inset-0 bg-primary/20 blur-[50px] rounded-full" />
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+          className="w-24 h-24 border-t-2 border-l-2 border-primary rounded-full relative z-10"
+        />
+        <div className="absolute inset-0 flex items-center justify-center font-mono text-2xl font-bold text-primary">
+          {(currentStage + 1) * 10}%
+        </div>
+      </div>
+
+      <h2 className="text-3xl font-bold mb-2 text-white">Procesando Ética</h2>
+      <p className="text-slate-400 mb-10 text-center max-w-md">
+        El orquestador está navegando a través de los 10 Sefirot. <br/>
+        Activando BinahSigma para detección geopolítica...
+      </p>
+      <p className="text-sm text-slate-500 mb-6">
+        ⏱️ Tiempo estimado: 8-12 minutos
       </p>
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: '2rem'
-      }}>
-        <div className="spinner"></div>
-      </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full">
+        {sefirotStages.map((stage, idx) => {
+          const isActive = idx === currentStage;
+          const isPast = idx < currentStage;
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
-        {sefirotStages.map((stage, idx) => (
-          <div
-            key={stage.name}
-            style={{
-              padding: '1rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: idx === currentStage
-                ? 'var(--color-bg-tertiary)'
-                : 'transparent',
-              border: `2px solid ${idx <= currentStage ? stage.color : 'var(--color-border)'}`,
-              opacity: idx <= currentStage ? 1 : 0.3,
-              transition: 'all 0.3s ease',
-              transform: idx === currentStage ? 'scale(1.05)' : 'scale(1)'
-            }}
-          >
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: stage.color,
-              margin: '0 auto 0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '1.2rem'
-            }}>
-              {idx + 1}
-            </div>
-            <div style={{
-              fontWeight: 600,
-              marginBottom: '0.25rem',
-              fontSize: '0.9rem'
-            }}>
-              {stage.name}
-            </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'var(--color-text-secondary)'
-            }}>
-              {stage.label}
-            </div>
-          </div>
-        ))}
-      </div>
+          return (
+            <motion.div
+              key={stage.id}
+              animate={{
+                scale: isActive ? 1.05 : 1,
+                opacity: isActive || isPast ? 1 : 0.3,
+                borderColor: isActive ? stage.color : 'rgba(255,255,255,0.1)'
+              }}
+              className={`p-3 rounded-lg border bg-surface/50 backdrop-blur-sm flex flex-col items-center text-center transition-all duration-300 relative overflow-hidden`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="active-glow"
+                  className="absolute inset-0 bg-white/5"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
 
-      <div style={{
-        padding: '1rem',
-        backgroundColor: 'rgba(88, 166, 255, 0.1)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: '0.875rem',
-        color: 'var(--color-text-secondary)'
-      }}>
-        <p style={{ marginBottom: '0.5rem' }}>
-          <strong>Current Stage:</strong> {sefirotStages[currentStage].name}
-        </p>
-        <p>
-          {sefirotStages[currentStage].label}
-        </p>
-      </div>
+              <div
+                className="w-3 h-3 rounded-full mb-2 shadow-[0_0_10px_currentColor]"
+                style={{ backgroundColor: stage.color, color: stage.color }}
+              />
 
-      <p style={{
-        marginTop: '1.5rem',
-        fontSize: '0.875rem',
-        color: 'var(--color-text-secondary)'
-      }}>
-        This may take 2-3 minutes depending on scenario complexity
-      </p>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                {stage.name}
+              </span>
+              <span className="text-[10px] text-slate-500 mt-1 leading-tight">
+                {stage.label}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }

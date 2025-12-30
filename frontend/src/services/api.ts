@@ -9,10 +9,10 @@ import type {
 class TikunAPI {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = '/api') {
+  constructor(baseURL: string = '') {
     this.client = axios.create({
       baseURL,
-      timeout: 300000, // 5 minutes for long analysis
+      timeout: 900000, // 15 minutes for long analysis (Tikun pipeline 8-12 min with overhead)
       headers: {
         'Content-Type': 'application/json',
       },

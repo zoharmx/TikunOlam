@@ -39,10 +39,15 @@ venv.bak/
 *~
 .DS_Store
 
-# Environment variables
+# Environment variables & Secrets
 .env
 .env.local
 .env.*.local
+.env.no-claude
+*.json.bak
+vertex-ai-key.json
+*-key.json
+*credentials*.json
 
 # Testing
 .pytest_cache/
@@ -97,3 +102,14 @@ tmp/
 temp/
 *.tmp
 *.bak
+nul
+
+# Personal notes and commands (not for repo)
+COMANDOS BACKEND FRONTEND.txt
+MISSION CRITICAL CONTEXT.txt
+PROBLEMA CON EL FRONTEND Y TIMING.txt
+objetivo.txt
+
+# Generated/local directories
+files/
+images/

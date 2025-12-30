@@ -11,6 +11,13 @@ from tikun.sefirot.base import BaseSefirah
 from tikun.models.schemas import BinahResult, BinahSigmaAnalysis
 from tikun.utils.validation import detect_geopolitical_content
 
+# Datadog metrics
+try:
+    from monitoring.datadog_config import SefiraMetrics
+    DATADOG_AVAILABLE = True
+except ImportError:
+    DATADOG_AVAILABLE = False
+
 
 class Binah(BaseSefirah):
     """
@@ -102,6 +109,10 @@ class Binah(BaseSefirah):
 
             # Synthesize results
             result = self._synthesize_sigma(west_response, east_response, scenario)
+
+            # Emit Datadog metrics (CRITICAL for hackathon)
+            if DATADOG_AVAILABLE:
+                SefiraMetrics.emit_binah_metrics(result)
 
             if self.verbose:
                 self.logger.info(

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 
 interface AnalysisFormProps {
   onSubmit: (scenario: string, caseName?: string) => void;
@@ -70,81 +71,61 @@ Critical questions:
   };
 
   return (
-    <div className="card">
-      <h2 className="text-2xl font-bold mb-3">Analyze Ethical Scenario</h2>
-      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
+    <div className="glass-panel p-8 rounded-2xl">
+      <div className="flex items-center gap-3 mb-2">
+        <Sparkles className="w-6 h-6 text-primary" />
+        <h2 className="text-2xl font-bold text-white">Analyze Ethical Scenario</h2>
+      </div>
+      <p className="text-slate-400 mb-8">
         Enter a scenario for multi-civilizational ethical analysis through the 10 Sefirot.
         BinahSigma will activate automatically for geopolitical content.
       </p>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label
-            htmlFor="caseName"
-            style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 500
-            }}
-          >
-            Case Name (optional)
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="caseName" className="block mb-2 text-sm font-medium text-slate-300">
+            Case Name <span className="text-slate-500">(optional)</span>
           </label>
           <input
             type="text"
             id="caseName"
-            className="input"
+            className="w-full px-4 py-3 bg-surface/50 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-colors"
             placeholder="e.g., UBI_Analysis_2024"
             value={caseName}
             onChange={(e) => setCaseName(e.target.value)}
           />
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label
-            htmlFor="scenario"
-            style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 500
-            }}
-          >
-            Scenario <span style={{ color: 'var(--color-error)' }}>*</span>
+        <div>
+          <label htmlFor="scenario" className="block mb-2 text-sm font-medium text-slate-300">
+            Scenario <span className="text-red-400">*</span>
           </label>
           <textarea
             id="scenario"
-            className="input textarea"
+            className="w-full px-4 py-3 bg-surface/50 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-colors resize-none"
             placeholder="Describe the ethical scenario you want to analyze..."
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
             required
-            style={{ minHeight: '200px' }}
+            rows={8}
           />
-          <div style={{
-            marginTop: '0.5rem',
-            fontSize: '0.875rem',
-            color: 'var(--color-text-secondary)'
-          }}>
+          <div className="mt-2 text-xs text-slate-500">
             {scenario.length} characters
             {scenario.length > 500 && ' - BinahSigma may activate for geopolitical content'}
           </div>
         </div>
 
-        <div style={{ marginBottom: '1.5rem' }}>
-          <p style={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            marginBottom: '0.5rem'
-          }}>
+        <div>
+          <p className="text-sm font-medium text-slate-300 mb-3">
             Example Scenarios:
           </p>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="flex gap-3 flex-wrap">
             {exampleScenarios.map((example, idx) => (
               <button
                 key={idx}
                 type="button"
-                className="button button-secondary"
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-sm text-slate-300 transition-all"
                 onClick={() => loadExample(example.text)}
-                style={{ fontSize: '0.875rem' }}
               >
                 {example.name}
               </button>
@@ -154,35 +135,58 @@ Critical questions:
 
         <button
           type="submit"
-          className="button button-primary"
           disabled={!scenario.trim()}
-          style={{ width: '100%', padding: '0.75rem' }}
+          className="w-full py-4 bg-primary hover:bg-primary/90 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all shadow-[0_0_20px_rgba(58,134,255,0.2)] hover:shadow-[0_0_30px_rgba(58,134,255,0.3)]"
         >
           Analyze Scenario
         </button>
       </form>
 
-      <div style={{
-        marginTop: '1.5rem',
-        padding: '1rem',
-        backgroundColor: 'var(--color-bg-tertiary)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: '0.875rem'
-      }}>
-        <p style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
+      <div className="mt-8 p-6 bg-surface/30 border border-white/5 rounded-xl">
+        <p className="font-medium text-slate-200 mb-3 text-sm">
           What happens during analysis:
         </p>
-        <ul style={{ paddingLeft: '1.5rem', color: 'var(--color-text-secondary)' }}>
-          <li>Keter validates ethical alignment</li>
-          <li>Chochmah analyzes wisdom and precedents</li>
-          <li>Binah performs multi-civilizational understanding (BinahSigma)</li>
-          <li>Chesed evaluates opportunities</li>
-          <li>Gevurah assesses risks</li>
-          <li>Tiferet synthesizes balance</li>
-          <li>Netzach formulates strategy</li>
-          <li>Hod designs communication</li>
-          <li>Yesod integrates all insights</li>
-          <li>Malchut makes final decision</li>
+        <ul className="space-y-1.5 text-xs text-slate-400">
+          <li className="flex items-start gap-2">
+            <span className="text-sef-keter">•</span>
+            <span>Keter validates ethical alignment</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-chochmah">•</span>
+            <span>Chochmah analyzes wisdom and precedents</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-binah">•</span>
+            <span>Binah performs multi-civilizational understanding (BinahSigma)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-chesed">•</span>
+            <span>Chesed evaluates opportunities</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-gevurah">•</span>
+            <span>Gevurah assesses risks</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-tiferet">•</span>
+            <span>Tiferet synthesizes balance</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-netzach">•</span>
+            <span>Netzach formulates strategy</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-hod">•</span>
+            <span>Hod designs communication</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-yesod">•</span>
+            <span>Yesod integrates all insights</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-sef-malchut">•</span>
+            <span>Malchut makes final decision</span>
+          </li>
         </ul>
       </div>
     </div>

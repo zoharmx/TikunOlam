@@ -28,6 +28,20 @@ from tikun.sefirot.hod import Hod
 from tikun.sefirot.yesod import Yesod
 from tikun.sefirot.malchut import Malchut
 
+# Datadog observability
+try:
+    from ddtrace import tracer
+    from monitoring.datadog_config import (
+        emit_pipeline_start,
+        emit_pipeline_complete,
+        emit_pipeline_error,
+        emit_metric
+    )
+    DATADOG_AVAILABLE = True
+except ImportError:
+    DATADOG_AVAILABLE = False
+    tracer = None
+
 
 class TikunOrchestrator:
     """
@@ -79,20 +93,60 @@ class TikunOrchestrator:
     def _init_sefirot(self) -> None:
         """Initialize all Sefirot."""
         try:
-            self.logger.debug("Initializing Sefirot")
+            self.logger.info("Initializing Sefirot...")
+            import time
+            start = time.time()
 
+            self.logger.info("Initializing Keter...")
             self.keter = Keter(self.config, self.verbose)
-            self.chochmah = Chochmah(self.config, self.verbose)
-            self.binah = Binah(self.config, self.verbose)
-            self.chesed = Chesed(self.config, self.verbose)
-            self.gevurah = Gevurah(self.config, self.verbose)
-            self.tiferet = Tiferet(self.config, self.verbose)
-            self.netzach = Netzach(self.config, self.verbose)
-            self.hod = Hod(self.config, self.verbose)
-            self.yesod = Yesod(self.config, self.verbose)
-            self.malchut = Malchut(self.config, self.verbose)
+            self.logger.info(f"Keter initialized in {time.time() - start:.2f}s")
 
-            self.logger.debug("All Sefirot initialized successfully")
+            self.logger.info("Initializing Chochmah...")
+            t = time.time()
+            self.chochmah = Chochmah(self.config, self.verbose)
+            self.logger.info(f"Chochmah initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Binah...")
+            t = time.time()
+            self.binah = Binah(self.config, self.verbose)
+            self.logger.info(f"Binah initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Chesed...")
+            t = time.time()
+            self.chesed = Chesed(self.config, self.verbose)
+            self.logger.info(f"Chesed initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Gevurah...")
+            t = time.time()
+            self.gevurah = Gevurah(self.config, self.verbose)
+            self.logger.info(f"Gevurah initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Tiferet...")
+            t = time.time()
+            self.tiferet = Tiferet(self.config, self.verbose)
+            self.logger.info(f"Tiferet initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Netzach...")
+            t = time.time()
+            self.netzach = Netzach(self.config, self.verbose)
+            self.logger.info(f"Netzach initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Hod...")
+            t = time.time()
+            self.hod = Hod(self.config, self.verbose)
+            self.logger.info(f"Hod initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Yesod...")
+            t = time.time()
+            self.yesod = Yesod(self.config, self.verbose)
+            self.logger.info(f"Yesod initialized in {time.time() - t:.2f}s")
+
+            self.logger.info("Initializing Malchut...")
+            t = time.time()
+            self.malchut = Malchut(self.config, self.verbose)
+            self.logger.info(f"Malchut initialized in {time.time() - t:.2f}s")
+
+            self.logger.info(f"All Sefirot initialized successfully in {time.time() - start:.2f}s")
 
         except Exception as e:
             self.logger.error(
@@ -122,6 +176,20 @@ class TikunOrchestrator:
         start_time = time.time()
 
         case_name = case_name or f"case_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # Create Datadog span for entire pipeline
+        pipeline_span = None
+        if DATADOG_AVAILABLE and tracer:
+            pipeline_span = tracer.trace(
+                "tikun.full_pipeline",
+                service="tikun-orchestrator",
+                resource="full_pipeline"
+            )
+            pipeline_span.set_tag('case_name', case_name)
+            pipeline_span.set_tag('scenario_length', len(scenario))
+
+            # Emit pipeline start metric
+            emit_pipeline_start(case_name)
 
         self.logger.info(
             f"Starting Tikun analysis",
@@ -235,11 +303,37 @@ class TikunOrchestrator:
             duration = time.time() - start_time
             results['metadata']['total_duration_seconds'] = round(duration, 2)
 
+            # Get final decision for metrics
+            final_decision = results['sefirot_results']['malchut'].get('decision', 'UNKNOWN')
+
+            # Emit Datadog metrics for pipeline completion
+            if DATADOG_AVAILABLE:
+                duration_ms = duration * 1000
+
+                # Emit pipeline completion
+                emit_pipeline_complete(
+                    case_name,
+                    duration_ms,
+                    final_decision
+                )
+
+                # Emit average alignment score
+                keter_result = results['sefirot_results'].get('keter', {})
+                alignment = keter_result.get('alignment_percentage', 0)
+                emit_metric('pipeline.average_alignment', alignment, tags=[f'case:{case_name}'])
+
+                # Add tags to pipeline span
+                if pipeline_span:
+                    pipeline_span.set_tag('final_decision', final_decision)
+                    pipeline_span.set_tag('alignment_score', alignment)
+                    pipeline_span.set_tag('duration_ms', duration_ms)
+                    pipeline_span.set_tag('status', 'success')
+
             self.logger.info(
                 f"Tikun analysis complete",
                 case_name=case_name,
                 duration=duration,
-                final_decision=results['sefirot_results']['malchut'].get('decision', 'UNKNOWN')
+                final_decision=final_decision
             )
 
             # Auto-export if requested
@@ -250,6 +344,16 @@ class TikunOrchestrator:
             return results
 
         except Exception as e:
+            # Emit error metrics
+            if DATADOG_AVAILABLE:
+                emit_pipeline_error(case_name, e)
+
+                if pipeline_span:
+                    pipeline_span.set_tag('error', True)
+                    pipeline_span.set_tag('error.message', str(e))
+                    pipeline_span.set_tag('error.type', type(e).__name__)
+                    pipeline_span.set_tag('status', 'failed')
+
             self.logger.error(
                 f"Pipeline execution failed",
                 case_name=case_name,
@@ -257,6 +361,11 @@ class TikunOrchestrator:
                 exc_info=True
             )
             raise
+
+        finally:
+            # Finish pipeline span
+            if pipeline_span:
+                pipeline_span.finish()
 
     def export_results(
         self,
@@ -294,63 +403,68 @@ class TikunOrchestrator:
             )
             raise
 
-    def get_summary(self, results: Dict[str, Any]) -> str:
+    def get_summary(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generate human-readable summary of results.
+        Generate structured summary of results for API response.
 
         Args:
             results: Results dictionary
 
         Returns:
-            Formatted summary string
+            Structured summary dictionary
         """
-        lines = []
-        lines.append("=" * 80)
-        lines.append("TIKUN OLAM ANALYSIS SUMMARY")
-        lines.append("=" * 80)
-        lines.append("")
-
-        # Metadata
-        meta = results.get('metadata', {})
-        lines.append(f"Case: {meta.get('case_name', 'Unknown')}")
-        lines.append(f"Timestamp: {meta.get('timestamp', 'Unknown')}")
-        lines.append(f"Duration: {meta.get('total_duration_seconds', 0)}s")
-        lines.append("")
-
-        # Key metrics
         sefirot = results.get('sefirot_results', {})
 
-        if 'keter' in sefirot:
-            keter = sefirot['keter']
-            lines.append(f"KETER - Alignment: {keter.get('alignment_percentage', 0)}%")
-            lines.append(f"       Corruption: {keter.get('corruption_severity', 'unknown')}")
-            lines.append(f"       Threshold Met: {keter.get('threshold_met', False)}")
-            lines.append("")
+        # Extract final decision from Malchut
+        malchut = sefirot.get('malchut', {})
+        final_decision = malchut.get('decision', 'UNKNOWN')
 
-        if 'binah' in sefirot:
-            binah = sefirot['binah']
-            mode = binah.get('mode', 'simple')
-            lines.append(f"BINAH - Mode: {mode.upper()}")
-            if mode == 'sigma':
-                lines.append(f"       Bias Delta: {binah.get('bias_delta', 0)}%")
-                lines.append(f"       Divergence: {binah.get('divergence_level', 'unknown')}")
-            lines.append("")
+        # Extract overall alignment from Keter
+        keter = sefirot.get('keter', {})
+        overall_alignment = float(keter.get('alignment_percentage', 0))
 
-        if 'yesod' in sefirot:
-            yesod = sefirot['yesod']
-            lines.append(f"YESOD - Readiness: {yesod.get('readiness_score', 0)}%")
-            lines.append(f"       Quality: {yesod.get('yesod_quality', 'unknown')}")
-            recommendation = yesod.get('go_no_go_recommendation', {})
-            lines.append(f"       Recommendation: {recommendation.get('decision', 'UNKNOWN')}")
-            lines.append("")
+        # Extract key risks from Gevurah (top 5)
+        gevurah = sefirot.get('gevurah', {})
+        risks = gevurah.get('risks', [])
+        key_risks = []
+        for risk in risks[:5]:
+            if isinstance(risk, dict):
+                desc = risk.get('description', '')
+                if desc:
+                    key_risks.append(desc)
+            elif isinstance(risk, str):
+                key_risks.append(risk)
 
-        if 'malchut' in sefirot:
-            malchut = sefirot['malchut']
-            lines.append(f"MALCHUT - FINAL DECISION: {malchut.get('decision', 'UNKNOWN')}")
-            lines.append(f"         Confidence: {malchut.get('confidence', 'unknown')}")
-            lines.append(f"         Quality: {malchut.get('manifestation_quality', 'unknown')}")
-            lines.append("")
+        # If no risks extracted, add a generic message
+        if not key_risks:
+            key_risks = ["No significant risks identified"]
 
-        lines.append("=" * 80)
+        # Extract key opportunities from Chesed (top 5)
+        chesed = sefirot.get('chesed', {})
+        opportunities = chesed.get('opportunities', [])
+        key_opportunities = []
+        for opp in opportunities[:5]:
+            if isinstance(opp, dict):
+                desc = opp.get('description', '')
+                if desc:
+                    key_opportunities.append(desc)
+            elif isinstance(opp, str):
+                key_opportunities.append(opp)
 
-        return "\n".join(lines)
+        # If no opportunities extracted, add a generic message
+        if not key_opportunities:
+            key_opportunities = ["Analysis complete. See detailed results."]
+
+        # Generate recommendation from Yesod or Malchut
+        yesod = sefirot.get('yesod', {})
+        recommendation = yesod.get('recommendation', '')
+        if not recommendation:
+            recommendation = malchut.get('rationale', 'Analysis complete. Review detailed Sefirot results for comprehensive insights.')
+
+        return {
+            "final_decision": final_decision,
+            "overall_alignment": overall_alignment,
+            "key_risks": key_risks,
+            "key_opportunities": key_opportunities,
+            "recommendation": recommendation
+        }

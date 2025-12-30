@@ -5,7 +5,7 @@ Pydantic models for FastAPI endpoints.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, Literal
+from typing import Optional, Dict, Any, Literal, List
 
 
 class AnalysisRequest(BaseModel):
@@ -14,7 +14,7 @@ class AnalysisRequest(BaseModel):
     scenario: str = Field(
         ...,
         description="The ethical scenario to analyze",
-        min_length=50,
+        min_length=10,  # Reduced from 50 to allow shorter test scenarios
         max_length=50000
     )
 
@@ -51,6 +51,16 @@ class AnalysisRequest(BaseModel):
     }
 
 
+class Summary(BaseModel):
+    """Summary of analysis results."""
+
+    final_decision: str = Field(description="Final decision: GO, NO_GO, or CONDITIONAL_GO")
+    overall_alignment: float = Field(description="Overall ethical alignment percentage (0-100)")
+    key_risks: List[str] = Field(description="Top identified risks")
+    key_opportunities: List[str] = Field(description="Top identified opportunities")
+    recommendation: str = Field(description="Human-readable recommendation")
+
+
 class AnalysisResponse(BaseModel):
     """Response model for completed analysis."""
 
@@ -63,7 +73,15 @@ class AnalysisResponse(BaseModel):
         None,
         description="Full Sefirot results (if include_full_results=True)"
     )
-    summary: str = Field(description="Human-readable summary")
+    summary: Summary = Field(description="Structured summary of analysis")
+    sefirot_results: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Sefirot results (extracted from results for frontend compatibility)"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Metadata (extracted from results for frontend compatibility)"
+    )
 
 
 class JobResponse(BaseModel):

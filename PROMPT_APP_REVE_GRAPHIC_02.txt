@@ -1,0 +1,147 @@
+===============================================
+PROMPT PARA APP.REVE - GRÁFICO 2
+Decision Flow Diagram - BinahSigma
+===============================================
+
+Create a modern, professional decision flow diagram with the following specifications:
+
+THEME & STYLE:
+- Dark navy/dark blue background (#0A0E27 or similar)
+- Modern, clean design matching the style of the divergence meter
+- High contrast white text
+- Gradient effects and rounded boxes
+- Professional tech/AI aesthetic
+
+LAYOUT - VERTICAL FLOW DIAGRAM:
+
+┌─────────────────────────────────────────┐
+│  TOP SECTION - TWO BOXES SIDE BY SIDE   │
+├─────────────────────────────────────────┤
+
+LEFT BOX:
+- Text: "WESTERN VIEW"
+- Subtitle: "Individual • Market Freedom"
+- Color: Blue (#3A86FF)
+- Rounded corners
+- White border
+
+RIGHT BOX:
+- Text: "EASTERN VIEW"
+- Subtitle: "Collective • Social Harmony"
+- Color: Orange/Red (#FB5607)
+- Rounded corners
+- White border
+
+ARROWS:
+- Two white arrows converging from both boxes downward to the center
+- Width: 4-5px
+
+┌─────────────────────────────────────────┐
+│     CENTER SECTION - BINAH SIGMA        │
+├─────────────────────────────────────────┤
+
+MAIN BOX (HIGHLIGHTED):
+- Text: "BinahSigma"
+- Subtitle: "ADVERSARIAL ANALYSIS"
+- Color: Magenta/Pink (#FF006E)
+- Glowing effect or shadow
+- Larger than other boxes
+- White border (thicker: 4px)
+- Include Greek letter Sigma (Σ) icon on the left side
+
+ARROW DOWN:
+- Single white arrow going down
+- Width: 5-6px
+
+┌─────────────────────────────────────────┐
+│      SYNTHESIS SECTION                  │
+├─────────────────────────────────────────┤
+
+BOX:
+- Text: "TRANSCENDENT SYNTHESIS"
+- Subtitle: "Competitive Dividend: $10B"
+- Subtitle 2: "Neither West nor East Alone"
+- Color: Purple (#8338EC) or Green (#06FFA5)
+- Rounded corners
+- White border
+
+ARROW DOWN:
+- Single green/cyan arrow going down
+- Width: 5-6px
+
+┌─────────────────────────────────────────┐
+│      FINAL DECISION                     │
+├─────────────────────────────────────────┤
+
+BOX (HIGHLIGHTED):
+- Text: "CONDITIONAL GO"
+- Subtitle: "Confidence: HIGH (78%)"
+- Color: Bright green/cyan (#06FFA5)
+- Glowing effect
+- Rounded corners
+- Thick white border (5px)
+- Largest font for "CONDITIONAL GO"
+
+┌─────────────────────────────────────────┐
+│      HEADER & METADATA                  │
+├─────────────────────────────────────────┤
+
+TOP TITLE:
+- "BinahSigma Decision Flow"
+- Font: Large, bold, white
+- Position: Top center
+
+SUBTITLE:
+- "Nvidia-Groq $20B M&A Analysis"
+- Font: Medium, gray
+- Position: Below title
+
+SIDE PANEL (RIGHT):
+Display these metrics vertically:
+- "75%" in magenta, "Divergence" in gray below
+- "16" in magenta, "Blind Spots" in gray below
+- "10.8 min" in magenta, "Duration" in gray below
+
+ASPECT RATIO:
+- Vertical: 9:16 or 3:4 (portrait orientation)
+- OR Standard: 16:9 if vertical doesn't work
+
+TEXT SIZES:
+- Main box titles: Large (32-40pt equivalent)
+- Subtitles: Medium (18-24pt equivalent)
+- Side metrics numbers: Large (28pt)
+- Side metrics labels: Small (14pt)
+
+STYLE NOTES:
+- All boxes should have rounded corners
+- Use gradients where appropriate (similar to divergence meter bar)
+- White text throughout for maximum contrast
+- Glowing/shadow effects on BinahSigma and Final Decision boxes
+- Clean, modern, tech-forward aesthetic
+- Similar visual language to the divergence meter graphic
+
+OUTPUT:
+- PNG format
+- High resolution (1920x1080 or higher)
+- Transparent or dark navy background
+
+===============================================
+ALTERNATIVE SHORTER PROMPT (IF NEEDED):
+===============================================
+
+Create a vertical decision flow diagram on dark navy background showing:
+
+1. TOP: "WESTERN VIEW" (blue box) and "EASTERN VIEW" (orange box) side by side
+2. Arrows converging down to:
+3. CENTER: "BinahSigma - ADVERSARIAL ANALYSIS" (large magenta box with glow, Σ symbol)
+4. Arrow down to:
+5. "TRANSCENDENT SYNTHESIS - Competitive Dividend: $10B" (purple box)
+6. Arrow down to:
+7. BOTTOM: "CONDITIONAL GO - Confidence: HIGH (78%)" (bright green box with glow)
+
+Header: "BinahSigma Decision Flow - Nvidia-Groq $20B M&A Analysis"
+Side panel: "75% Divergence, 16 Blind Spots, 10.8 min Duration"
+
+Style: Modern tech aesthetic, rounded boxes, white text, gradient effects, similar to previous divergence meter graphic.
+
+===============================================

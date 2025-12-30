@@ -17,12 +17,28 @@ from tenacity import (
 )
 
 # AI API clients
-import google.generativeai as genai
-from anthropic import Anthropic
+import vertexai
+from vertexai.generative_models import GenerativeModel, GenerationConfig
+# TEMPORARY: Comment out Anthropic to test if it causes overhead
+# from anthropic import Anthropic
 from openai import OpenAI
 
 from tikun.config import TikunConfig
 from tikun.utils.logging import get_logger, PerformanceLogger
+
+# Datadog observability
+try:
+    from ddtrace import tracer
+    from monitoring.datadog_config import (
+        emit_timing,
+        emit_counter,
+        add_span_tags,
+        set_span_error
+    )
+    DATADOG_AVAILABLE = True
+except ImportError:
+    DATADOG_AVAILABLE = False
+    tracer = None
 
 
 class BaseSefirah(ABC):
@@ -55,31 +71,34 @@ class BaseSefirah(ABC):
     def _init_ai_clients(self) -> None:
         """Initialize AI API clients."""
         try:
-            # Gemini (always required)
-            genai.configure(api_key=self.config.gemini_api_key)
-            self.logger.debug("Gemini client configured")
+            # Vertex AI (Gemini via Google Cloud) - Singleton initialization
+            # This ensures vertexai.init() is called only ONCE across all Sefirot
+            from tikun.ai_clients import init_vertex_ai
+            init_vertex_ai(self.config)
+            self.logger.debug("Vertex AI client ready")
 
-            # Claude (Anthropic) - optional, fallback to Gemini if not available
-            try:
-                if self.config.anthropic_api_key and self.config.anthropic_api_key not in ['placeholder', 'placeholder_no_usado', 'your_anthropic_api_key_here']:
-                    self.claude_client = Anthropic(api_key=self.config.anthropic_api_key)
-                    self.claude_available = True
-                    self.logger.debug("Claude client configured")
-                else:
-                    self.claude_client = None
-                    self.claude_available = False
-                    self.logger.warning("Claude API key not configured - will use Gemini fallback")
-            except Exception as e:
-                self.claude_client = None
-                self.claude_available = False
-                self.logger.warning(f"Claude client initialization failed - using Gemini fallback: {str(e)}")
+            # Claude (Anthropic) - DISABLED FOR PERFORMANCE TESTING
+            # TEMPORARY: Completely disabled to eliminate potential overhead
+            self.claude_client = None
+            self.claude_available = False
+            # Anthropic import and initialization commented out
 
-            # DeepSeek (OpenAI-compatible)
-            self.deepseek_client = OpenAI(
-                api_key=self.config.deepseek_api_key,
-                base_url="https://api.deepseek.com"
-            )
-            self.logger.debug("DeepSeek client configured")
+            # Original code (commented for testing):
+            # if self.config.anthropic_api_key and self.config.anthropic_api_key not in ['placeholder', 'placeholder_no_usado', 'your_anthropic_api_key_here', '']:
+            #     try:
+            #         self.claude_client = Anthropic(api_key=self.config.anthropic_api_key)
+            #         self.claude_available = True
+            #     except Exception as e:
+            #         self.claude_client = None
+            #         self.claude_available = False
+            # else:
+            #     self.claude_client = None
+            #     self.claude_available = False
+
+            # DeepSeek (OpenAI-compatible) - Singleton client
+            from tikun.ai_clients import get_deepseek_client
+            self.deepseek_client = get_deepseek_client(self.config)
+            self.logger.debug("DeepSeek client ready")
 
         except Exception as e:
             self.logger.error(
@@ -134,41 +153,45 @@ class BaseSefirah(ABC):
     def call_gemini(
         self,
         prompt: str,
-        model: str = "gemini-2.0-flash-exp",
+        model: str = "gemini-2.5-pro",
         temperature: float = 0.7
     ) -> str:
         """
-        Call Google Gemini API with retry logic.
+        Call Google Gemini via Vertex AI with retry logic.
 
         Args:
             prompt: Prompt text
-            model: Model identifier
+            model: Model identifier (Vertex AI model name)
             temperature: Temperature for generation
 
         Returns:
             Response text
         """
         try:
-            self.logger.debug(f"Calling Gemini", model=model)
+            self.logger.debug(f"Calling Gemini via Vertex AI", model=model)
 
-            gemini_model = genai.GenerativeModel(model)
+            gemini_model = GenerativeModel(model)
+
+            generation_config = GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=8192,
+                top_p=0.9,
+                top_k=40
+            )
 
             response = gemini_model.generate_content(
                 prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=temperature,
-                    max_output_tokens=8192,
-                )
+                generation_config=generation_config
             )
 
             result = response.text
-            self.logger.debug(f"Gemini response received", length=len(result))
+            self.logger.debug(f"Vertex AI response received", length=len(result))
 
             return result
 
         except Exception as e:
             self.logger.error(
-                f"Gemini API call failed",
+                f"Vertex AI Gemini call failed",
                 model=model,
                 error=str(e),
                 exc_info=True
@@ -201,8 +224,9 @@ class BaseSefirah(ABC):
         """
         # Fallback to Gemini if Claude not available
         if not self.claude_available or self.claude_client is None:
-            self.logger.warning(f"Claude not available, using Gemini fallback for this call")
-            return self.call_gemini(prompt, model="gemini-2.0-flash-exp", temperature=temperature)
+            self.logger.warning(f"Claude not available, using Vertex AI Gemini fallback for this call")
+            # Use gemini-2.5-flash which is available in Vertex AI
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
 
         try:
             self.logger.debug(f"Calling Claude", model=model)
@@ -226,12 +250,12 @@ class BaseSefirah(ABC):
 
         except Exception as e:
             self.logger.error(
-                f"Claude API call failed, trying Gemini fallback",
+                f"Claude API call failed, trying Vertex AI Gemini fallback",
                 model=model,
                 error=str(e)
             )
             # Fallback to Gemini on error
-            return self.call_gemini(prompt, model="gemini-2.0-flash-exp", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -291,7 +315,7 @@ class BaseSefirah(ABC):
         previous_results: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Safely process scenario with error handling.
+        Safely process scenario with error handling and Datadog instrumentation.
 
         Args:
             scenario: Input scenario text
@@ -301,10 +325,33 @@ class BaseSefirah(ABC):
             Dictionary with results or error information
         """
         sefirah_name = self.__class__.__name__.lower()
+        start_time = time.time()
+
+        # Create Datadog span if available
+        span = None
+        if DATADOG_AVAILABLE and tracer:
+            span = tracer.trace(
+                f"sefira.{sefirah_name}",
+                service=f"tikun-{sefirah_name}",
+                resource=sefirah_name
+            )
 
         try:
             with PerformanceLogger(self.logger, f"{sefirah_name}_processing"):
                 result = self.process(scenario, previous_results)
+
+            # Emit success metrics
+            duration_ms = (time.time() - start_time) * 1000
+            if DATADOG_AVAILABLE:
+                emit_timing(f"{sefirah_name}.execution_time", duration_ms)
+                emit_counter(f"{sefirah_name}.analysis_success", tags=['status:success'])
+
+                if span:
+                    add_span_tags({
+                        'sefirah': sefirah_name,
+                        'status': 'success',
+                        'duration_ms': duration_ms
+                    })
 
             return result
 
@@ -314,6 +361,13 @@ class BaseSefirah(ABC):
                 error=str(e),
                 exc_info=True
             )
+
+            # Emit error metrics
+            if DATADOG_AVAILABLE:
+                emit_counter(f"{sefirah_name}.analysis_error", tags=['status:error', 'error_type:retry'])
+                if span:
+                    set_span_error(e)
+
             return {
                 "error": f"Failed after retries: {str(e)}",
                 "status": "failed"
@@ -325,10 +379,22 @@ class BaseSefirah(ABC):
                 error=str(e),
                 exc_info=True
             )
+
+            # Emit error metrics
+            if DATADOG_AVAILABLE:
+                emit_counter(f"{sefirah_name}.analysis_error", tags=['status:error', f'error_type:{type(e).__name__}'])
+                if span:
+                    set_span_error(e)
+
             return {
                 "error": str(e),
                 "status": "failed"
             }
+
+        finally:
+            # Finish span
+            if span:
+                span.finish()
 
     def extract_field(
         self,

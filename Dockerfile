@@ -1,8 +1,17 @@
-# Tikun Olam - Production Docker Image
-# Multi-stage build for optimized image size
+# Tikun Olam - Cloud Run Optimized Multi-Stage Build
+# Google Cloud AI Partner Catalyst - Datadog Challenge
 
-# Build stage
-FROM python:3.11-slim as builder
+# ============================================================================
+# Stage 1: Use Pre-built Frontend (Skip build in Docker)
+# ============================================================================
+FROM scratch AS frontend-builder
+
+# This is a placeholder stage - we'll copy the pre-built dist directly
+
+# ============================================================================
+# Stage 2: Build Python Dependencies
+# ============================================================================
+FROM python:3.11-slim AS python-builder
 
 WORKDIR /build
 
@@ -15,13 +24,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies to user directory
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Runtime stage
+# ============================================================================
+# Stage 3: Runtime Image (Cloud Run Optimized)
+# ============================================================================
 FROM python:3.11-slim
 
 WORKDIR /app
+
+# Install runtime dependencies (curl for health checks)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN useradd -m -u 1000 tikun && \
@@ -29,24 +45,38 @@ RUN useradd -m -u 1000 tikun && \
     chown -R tikun:tikun /app
 
 # Copy Python dependencies from builder
-COPY --from=builder /root/.local /home/tikun/.local
+COPY --from=python-builder /root/.local /home/tikun/.local
 
 # Copy application code
 COPY --chown=tikun:tikun src/ /app/src/
-COPY --chown=tikun:tikun setup.py pyproject.toml README.md /app/
+COPY --chown=tikun:tikun monitoring/ /app/monitoring/
 COPY --chown=tikun:tikun .env.example /app/.env.example
 
-# Install the package
+# Copy pre-built frontend from local build
+COPY --chown=tikun:tikun frontend/dist /app/frontend/dist
+
+# Switch to non-root user
 USER tikun
-ENV PATH=/home/tikun/.local/bin:$PATH
-ENV PYTHONPATH=/app/src:$PYTHONPATH
 
-# Expose API port
-EXPOSE 8000
+# Environment setup
+ENV PATH=/home/tikun/.local/bin:$PATH \
+    PYTHONPATH=/app/src:$PYTHONPATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)"
+# Cloud Run uses PORT environment variable (defaults to 8080)
+EXPOSE 8080
 
-# Default command (can be overridden)
-CMD ["uvicorn", "tikun.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Start application with uvicorn
+# Cloud Run will inject PORT environment variable
+CMD exec uvicorn src.tikun.api.main:app \
+    --host 0.0.0.0 \
+    --port ${PORT} \
+    --workers 2 \
+    --log-level info \
+    --access-log

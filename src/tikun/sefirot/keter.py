@@ -10,6 +10,13 @@ from typing import Dict, Any, Optional
 from tikun.sefirot.base import BaseSefirah
 from tikun.models.schemas import KeterResult, Corruption
 
+# Datadog metrics
+try:
+    from monitoring.datadog_config import SefiraMetrics, emit_metric
+    DATADOG_AVAILABLE = True
+except ImportError:
+    DATADOG_AVAILABLE = False
+
 
 class Keter(BaseSefirah):
     """
@@ -112,6 +119,15 @@ Be rigorous. If you detect genuine harm maximization or critical corruption, sta
 
         # Parse response
         result = self._parse_response(response)
+
+        # Emit Datadog metrics
+        if DATADOG_AVAILABLE:
+            SefiraMetrics.emit_keter_metrics(result)
+
+            # Emit corruption score as separate metric
+            corruption_map = {'none': 0, 'low': 25, 'medium': 50, 'high': 75, 'critical': 100}
+            corruption_score = corruption_map.get(result.get('corruption_severity', 'low'), 25)
+            emit_metric('keter.corruption_score', corruption_score)
 
         if self.verbose:
             self.logger.info(
