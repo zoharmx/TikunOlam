@@ -11,6 +11,17 @@
 **Hackathon:** Google Cloud AI Partner Catalyst - Datadog Challenge
 **Status:** Production-Ready | Fully Observable | 90% Ethical Alignment Tested
 
+```markdown
+<p align="center">
+  <img src="docs/images/tikun-banner.png" alt="Tikun Olam Banner" width="800"/>
+</p>
+
+<p align="center">
+  <strong>The first AI system that makes ethical reasoning visible, 
+  auditable, and monitorable in production.</strong>
+</p>
+```
+
 ---
 
 ## The Problem
