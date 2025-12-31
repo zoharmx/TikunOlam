@@ -66,11 +66,18 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Results & Outputs
-results/
+# Results & Outputs (exclude most, but keep featured examples)
+results/*.json
+results/*.txt
 output/
 exports/
 *.json
+!results/README.md
+!results/**/README.md
+!results/**/analysis_summary.md
+!results/**/*.py
+!results/nvidia_groq_20b_ma/full_results.json
+!results/nvidia_groq_20b_ma/full_results.txt
 !schema.json
 !package.json
 
