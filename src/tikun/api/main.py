@@ -25,14 +25,15 @@ from tikun.api.models import (
     JobStatus,
     JobResponse
 )
+from tikun.api.persistence import get_persistence
 
 # Setup logging
 config = get_config()
 setup_logging(level=config.log_level, enable_console=True)
 logger = get_logger(__name__)
 
-# Job storage (in production, use Redis or database)
-jobs: Dict[str, Dict[str, Any]] = {}
+# Job persistence (GCS in Cloud Run, local files in dev)
+persistence = get_persistence()
 
 
 @asynccontextmanager
@@ -215,8 +216,8 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
         # Generate job ID
         job_id = str(uuid.uuid4())
 
-        # Store job
-        jobs[job_id] = {
+        # Create job data
+        job_data = {
             "id": job_id,
             "status": "pending",
             "case_name": request.case_name,
@@ -224,6 +225,10 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
             "results": None,
             "error": None
         }
+
+        # Save to persistence
+        if not persistence.save_job(job_id, job_data):
+            raise HTTPException(status_code=500, detail="Failed to save job")
 
         # Add to background tasks
         background_tasks.add_task(
@@ -248,10 +253,11 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
 @app.get("/jobs/{job_id}", response_model=JobStatus, tags=["Jobs"])
 async def get_job_status(job_id: str):
     """Get status of async analysis job."""
-    if job_id not in jobs:
-        raise HTTPException(status_code=404, detail="Job not found")
+    # Load from persistence
+    job = persistence.load_job(job_id)
 
-    job = jobs[job_id]
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
     response = JobStatus(
         job_id=job_id,
@@ -264,7 +270,7 @@ async def get_job_status(job_id: str):
     )
 
     # Include results if completed
-    if job["status"] == "completed" and job["results"]:
+    if job["status"] == "completed" and job.get("results"):
         response.results = job["results"]
 
     return response
@@ -273,10 +279,10 @@ async def get_job_status(job_id: str):
 @app.delete("/jobs/{job_id}", tags=["Jobs"])
 async def delete_job(job_id: str):
     """Delete a job and its results."""
-    if job_id not in jobs:
+    if not persistence.job_exists(job_id):
         raise HTTPException(status_code=404, detail="Job not found")
 
-    del jobs[job_id]
+    persistence.delete_job(job_id)
     logger.info("Deleted job", job_id=job_id)
 
     return {"message": "Job deleted successfully"}
@@ -285,14 +291,22 @@ async def delete_job(job_id: str):
 @app.get("/jobs", tags=["Jobs"])
 async def list_jobs(limit: int = 100, status: Optional[str] = None):
     """List all jobs."""
-    job_list = list(jobs.values())
+    # Get all job IDs
+    job_ids = persistence.list_jobs(limit=limit * 2)  # Get extra for filtering
+
+    # Load job data
+    job_list = []
+    for job_id in job_ids:
+        job_data = persistence.load_job(job_id)
+        if job_data:
+            job_list.append(job_data)
 
     # Filter by status if provided
     if status:
         job_list = [j for j in job_list if j["status"] == status]
 
     # Sort by created_at descending
-    job_list.sort(key=lambda x: x["created_at"], reverse=True)
+    job_list.sort(key=lambda x: x.get("created_at", 0), reverse=True)
 
     # Limit
     job_list = job_list[:limit]
@@ -307,8 +321,11 @@ async def list_jobs(limit: int = 100, status: Optional[str] = None):
 async def process_analysis_background(job_id: str, request: AnalysisRequest):
     """Process analysis in background."""
     try:
-        # Update status
-        jobs[job_id]["status"] = "processing"
+        # Load job and update status
+        job = persistence.load_job(job_id)
+        if job:
+            job["status"] = "processing"
+            persistence.save_job(job_id, job)
 
         start_time = time.time()
 
@@ -323,13 +340,16 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
 
         duration = time.time() - start_time
 
-        # Update job with results
-        jobs[job_id].update({
-            "status": "completed",
-            "completed_at": time.time(),
-            "duration_seconds": duration,
-            "results": results if request.include_full_results else None
-        })
+        # Load job again and update with results
+        job = persistence.load_job(job_id)
+        if job:
+            job.update({
+                "status": "completed",
+                "completed_at": time.time(),
+                "duration_seconds": duration,
+                "results": results if request.include_full_results else None
+            })
+            persistence.save_job(job_id, job)
 
         logger.info(
             "Background analysis completed",
@@ -345,11 +365,15 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
             exc_info=True
         )
 
-        jobs[job_id].update({
-            "status": "failed",
-            "completed_at": time.time(),
-            "error": str(e)
-        })
+        # Load job and update with error
+        job = persistence.load_job(job_id)
+        if job:
+            job.update({
+                "status": "failed",
+                "completed_at": time.time(),
+                "error": str(e)
+            })
+            persistence.save_job(job_id, job)
 
 
 # Serve frontend static files
