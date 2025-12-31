@@ -25,14 +25,15 @@ from tikun.api.models import (
     JobStatus,
     JobResponse
 )
+from tikun.api.persistence import save_job, load_job, delete_job_file, list_all_jobs, init_jobs_storage
 
 # Setup logging
 config = get_config()
 setup_logging(level=config.log_level, enable_console=True)
 logger = get_logger(__name__)
 
-# Job storage (in production, use Redis or database)
-jobs: Dict[str, Dict[str, Any]] = {}
+# Initialize persistence
+init_jobs_storage()
 
 
 @asynccontextmanager
@@ -215,8 +216,8 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
         # Generate job ID
         job_id = str(uuid.uuid4())
 
-        # Store job
-        jobs[job_id] = {
+        # Create job data
+        job_data = {
             "id": job_id,
             "status": "pending",
             "case_name": request.case_name,
@@ -224,6 +225,9 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
             "results": None,
             "error": None
         }
+
+        # Persist job
+        save_job(job_id, job_data)
 
         # Add to background tasks
         background_tasks.add_task(
@@ -248,10 +252,10 @@ async def analyze_scenario_async(request: AnalysisRequest, background_tasks: Bac
 @app.get("/jobs/{job_id}", response_model=JobStatus, tags=["Jobs"])
 async def get_job_status(job_id: str):
     """Get status of async analysis job."""
-    if job_id not in jobs:
-        raise HTTPException(status_code=404, detail="Job not found")
+    job = load_job(job_id)
 
-    job = jobs[job_id]
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
     response = JobStatus(
         job_id=job_id,
@@ -273,10 +277,10 @@ async def get_job_status(job_id: str):
 @app.delete("/jobs/{job_id}", tags=["Jobs"])
 async def delete_job(job_id: str):
     """Delete a job and its results."""
-    if job_id not in jobs:
+    if not load_job(job_id):
         raise HTTPException(status_code=404, detail="Job not found")
 
-    del jobs[job_id]
+    delete_job_file(job_id)
     logger.info("Deleted job", job_id=job_id)
 
     return {"message": "Job deleted successfully"}
@@ -285,7 +289,8 @@ async def delete_job(job_id: str):
 @app.get("/jobs", tags=["Jobs"])
 async def list_jobs(limit: int = 100, status: Optional[str] = None):
     """List all jobs."""
-    job_list = list(jobs.values())
+    all_jobs = list_all_jobs()
+    job_list = list(all_jobs.values())
 
     # Filter by status if provided
     if status:
@@ -307,8 +312,11 @@ async def list_jobs(limit: int = 100, status: Optional[str] = None):
 async def process_analysis_background(job_id: str, request: AnalysisRequest):
     """Process analysis in background."""
     try:
-        # Update status
-        jobs[job_id]["status"] = "processing"
+        # Update status to processing
+        job = load_job(job_id)
+        if job:
+            job["status"] = "processing"
+            save_job(job_id, job)
 
         start_time = time.time()
 
@@ -323,13 +331,16 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
 
         duration = time.time() - start_time
 
-        # Update job with results
-        jobs[job_id].update({
-            "status": "completed",
-            "completed_at": time.time(),
-            "duration_seconds": duration,
-            "results": results if request.include_full_results else None
-        })
+        # Reload job to ensure we have latest state
+        job = load_job(job_id)
+        if job:
+            job.update({
+                "status": "completed",
+                "completed_at": time.time(),
+                "duration_seconds": duration,
+                "results": results if request.include_full_results else None
+            })
+            save_job(job_id, job)
 
         logger.info(
             "Background analysis completed",
@@ -345,11 +356,14 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
             exc_info=True
         )
 
-        jobs[job_id].update({
-            "status": "failed",
-            "completed_at": time.time(),
-            "error": str(e)
-        })
+        job = load_job(job_id)
+        if job:
+            job.update({
+                "status": "failed",
+                "completed_at": time.time(),
+                "error": str(e)
+            })
+            save_job(job_id, job)
 
 
 # Serve frontend static files
