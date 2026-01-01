@@ -35,13 +35,22 @@ class JobPersistence:
 
             try:
                 self.bucket = self.storage_client.bucket(self.bucket_name)
-                # Try to create bucket if it doesn't exist
+                # Check if bucket exists
                 if not self.bucket.exists():
-                    self.bucket = self.storage_client.create_bucket(
-                        self.bucket_name,
-                        location='us-central1'
-                    )
-                    print(f"✅ Created GCS bucket: {self.bucket_name}")
+                    try:
+                        # Try to create bucket
+                        self.bucket = self.storage_client.create_bucket(
+                            self.bucket_name,
+                            location='us-central1'
+                        )
+                        print(f"✅ Created GCS bucket: {self.bucket_name}")
+                    except Exception as create_error:
+                        # If error 409 (already exists), use existing bucket
+                        if "409" in str(create_error) or "already own it" in str(create_error):
+                            self.bucket = self.storage_client.bucket(self.bucket_name)
+                            print(f"✅ Using existing GCS bucket: {self.bucket_name}")
+                        else:
+                            raise  # Re-raise other errors
                 else:
                     print(f"✅ Using GCS bucket: {self.bucket_name}")
             except Exception as e:
