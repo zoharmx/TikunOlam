@@ -14,6 +14,7 @@ from datetime import datetime
 # Try to import Google Cloud Storage
 try:
     from google.cloud import storage
+    from google.api_core.exceptions import NotFound, Conflict, Forbidden
     HAS_GCS = True
 except ImportError:
     HAS_GCS = False
@@ -27,30 +28,49 @@ class JobPersistence:
         self.is_cloud_run = os.getenv('K_SERVICE') is not None
         self.use_gcs = self.is_cloud_run and HAS_GCS
 
+        # FAIL FAST in Cloud Run: If we expect GCS but don't have the library, crash.
+        if self.is_cloud_run and not HAS_GCS:
+            raise RuntimeError("Running in Cloud Run but google-cloud-storage is not installed.")
+
         if self.use_gcs:
             # Cloud Run with GCS
             self.project_id = os.getenv('GCP_PROJECT_ID', 'tikunframework')
             self.bucket_name = os.getenv('GCS_BUCKET', f"{self.project_id}-tikun-jobs")
-            self.storage_client = storage.Client()
 
             try:
-                self.bucket = self.storage_client.bucket(self.bucket_name)
-                # Try to create bucket if it doesn't exist
-                if not self.bucket.exists():
-                    self.bucket = self.storage_client.create_bucket(
-                        self.bucket_name,
-                        location='us-central1'
-                    )
-                    print(f"✅ Created GCS bucket: {self.bucket_name}")
-                else:
-                    print(f"✅ Using GCS bucket: {self.bucket_name}")
+                self.storage_client = storage.Client()
+                self.bucket = self._get_or_create_bucket()
+                print(f"✅ Using GCS bucket: {self.bucket_name}")
             except Exception as e:
-                print(f"⚠️ GCS bucket error: {e}. Falling back to local storage.")
-                self.use_gcs = False
-                self._setup_local_storage()
+                # CRITICAL: Do NOT fall back to local storage in Cloud Run.
+                # If GCS fails, the application is broken and should restart/fail.
+                print(f"❌ FATAL GCS Error: {e}")
+                raise RuntimeError(f"Failed to initialize GCS persistence: {e}")
         else:
             # Local development
             self._setup_local_storage()
+
+    def _get_or_create_bucket(self):
+        """Get existing bucket or create if missing."""
+        try:
+            return self.storage_client.get_bucket(self.bucket_name)
+        except NotFound:
+            print(f"Bucket {self.bucket_name} not found. Creating...")
+            try:
+                return self.storage_client.create_bucket(
+                    self.bucket_name,
+                    location='us-central1'
+                )
+            except Conflict:
+                # Race condition: someone else created it just now
+                print(f"Bucket {self.bucket_name} created concurrently. retrieving...")
+                return self.storage_client.get_bucket(self.bucket_name)
+            except Forbidden as e:
+                # Permission issue trying to create
+                 raise RuntimeError(f"Permission denied creating bucket {self.bucket_name}: {e}")
+        except Forbidden as e:
+             # Permission issue trying to get
+             raise RuntimeError(f"Permission denied accessing bucket {self.bucket_name}: {e}")
 
     def _setup_local_storage(self):
         """Setup local file storage."""
@@ -87,6 +107,7 @@ class JobPersistence:
             if self.use_gcs:
                 # Save to GCS
                 blob = self.bucket.blob(self._get_blob_name(job_id))
+                # Use retry=None to default or set specific retry policy if needed
                 blob.upload_from_string(
                     job_json,
                     content_type='application/json'
@@ -100,6 +121,7 @@ class JobPersistence:
 
         except Exception as e:
             print(f"❌ Error saving job {job_id}: {e}")
+            # In Cloud Run, we might want to raise here too, but for now returning False is handled by API
             return False
 
     def load_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -185,6 +207,10 @@ class JobPersistence:
                         job_ids.append(job_id)
                 return job_ids
             else:
+                # Local storage might not be initialized if we never created a job
+                if not hasattr(self, 'local_dir') or not self.local_dir.exists():
+                    return []
+
                 # List from local files
                 job_files = list(self.local_dir.glob("*.json"))
                 return [f.stem for f in job_files[:limit]]
