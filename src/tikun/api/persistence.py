@@ -25,6 +25,14 @@ class JobPersistence:
     def __init__(self):
         # Detect environment
         self.is_cloud_run = os.getenv('K_SERVICE') is not None
+
+        # FAIL FAST: Cloud Run REQUIRES Google Cloud Storage
+        if self.is_cloud_run and not HAS_GCS:
+            raise RuntimeError(
+                "❌ FATAL: Running in Cloud Run but google-cloud-storage is not installed. "
+                "Add 'google-cloud-storage>=2.10.0' to requirements.txt"
+            )
+
         self.use_gcs = self.is_cloud_run and HAS_GCS
 
         if self.use_gcs:
@@ -54,9 +62,16 @@ class JobPersistence:
                 else:
                     print(f"✅ Using GCS bucket: {self.bucket_name}")
             except Exception as e:
-                print(f"⚠️ GCS bucket error: {e}. Falling back to local storage.")
-                self.use_gcs = False
-                self._setup_local_storage()
+                # FAIL FAST in production - never silently fall back to local storage
+                if self.is_cloud_run:
+                    error_msg = f"❌ FATAL: GCS bucket initialization failed in Cloud Run: {e}"
+                    print(error_msg)
+                    raise RuntimeError(error_msg) from e
+                else:
+                    # Only allow fallback in local development
+                    print(f"⚠️ GCS bucket error in development: {e}. Falling back to local storage.")
+                    self.use_gcs = False
+                    self._setup_local_storage()
         else:
             # Local development
             self._setup_local_storage()
