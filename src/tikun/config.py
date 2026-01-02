@@ -152,6 +152,24 @@ class TikunConfig(BaseSettings):
         v.mkdir(parents=True, exist_ok=True)
         return v
 
+    @field_validator(
+        "gemini_api_key",
+        "anthropic_api_key",
+        "deepseek_api_key",
+        "openai_api_key",
+        "datadog_api_key",
+        "datadog_app_key",
+        mode="before"
+    )
+    @classmethod
+    def strip_api_keys(cls, v: Optional[str]) -> Optional[str]:
+        """Remove whitespace and newlines from API keys."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     def get_cors_origins_list(self) -> List[str]:
         if self.cors_origins == "*":
             return ["*"]
@@ -162,7 +180,7 @@ class TikunConfig(BaseSettings):
 
     def get_model_for_sefirah(self, sefirah: str) -> str:
         model_attr = f"{sefirah.lower()}_model"
-        return getattr(self, model_attr, "gemini-1.5-pro")
+        return getattr(self, model_attr, "gemini-2.5-pro")
 
 # Global config
 _config: Optional[TikunConfig] = None

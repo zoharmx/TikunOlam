@@ -42,7 +42,7 @@ async def warmup_vertex_ai() -> bool:
 
         # Step 2: Create model instance (this triggers additional initialization)
         model = GenerativeModel(
-            model_name="gemini-1.5-pro",  # Use same model as pipeline
+            model_name="gemini-2.5-pro",  # Use same model as pipeline
             generation_config={
                 "temperature": 0.1,
                 "max_output_tokens": 50,
