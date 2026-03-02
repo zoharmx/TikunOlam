@@ -197,3 +197,27 @@ export interface JobStatusResponse {
   results?: any; // Full results dict from backend
   error?: string;
 }
+
+export interface JobListResponse {
+  jobs: JobStatusResponse[];
+  total: number;
+}
+
+// Provider types
+export type ProviderKey = 'grok' | 'mistral' | 'openai' | 'deepseek' | 'vertex'
+
+export const PROVIDER_COLORS: Record<ProviderKey, string> = {
+  grok: '#FF6B35',
+  mistral: '#F72585',
+  openai: '#10A37F',
+  deepseek: '#00B4D8',
+  vertex: '#4285F4'
+}
+
+export const PROVIDER_LABELS: Record<string, ProviderKey> = {
+  'grok-3': 'grok',
+  'mistral-large-latest': 'mistral',
+  'gpt-4o': 'openai',
+  'deepseek-chat': 'deepseek',
+  'gemini-2.5-pro': 'vertex'
+}

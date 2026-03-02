@@ -114,8 +114,8 @@ Be rigorous. If you detect genuine harm maximization or critical corruption, sta
         # Generate prompt
         prompt = self.get_prompt(scenario, previous_results)
 
-        # Call AI (Gemini by default for Keter)
-        response = self.call_gemini(prompt, model=model)
+        # Call AI — Grok (xAI) primary, VertexAI fallback
+        response = self.call_grok(prompt, model=model)
 
         # Parse response
         result = self._parse_response(response)
@@ -142,6 +142,9 @@ Be rigorous. If you detect genuine harm maximization or critical corruption, sta
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """Parse Keter response into structured format."""
         try:
+            # Strip markdown formatting (Grok uses **bold:** values)
+            response = self._strip_markdown(response)
+
             # Extract alignment percentage
             alignment = self.extract_field(response, "alignment_percentage", 50)
             if isinstance(alignment, str):

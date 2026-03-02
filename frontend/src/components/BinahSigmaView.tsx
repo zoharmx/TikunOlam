@@ -1,146 +1,82 @@
+import { Globe, Map, GitMerge, Sparkles, Users } from 'lucide-react';
 import type { BinahResult } from '../types';
+import ProviderBadge from './ProviderBadge';
 
 interface BinahSigmaViewProps {
   binah: BinahResult;
 }
 
 function BinahSigmaView({ binah }: BinahSigmaViewProps) {
-  const getDivergenceColor = (level?: string) => {
-    switch (level?.toLowerCase()) {
-      case 'high':
-        return 'var(--color-error)';
-      case 'medium':
-        return 'var(--color-warning)';
-      case 'low':
-        return 'var(--color-success)';
-      default:
-        return 'var(--color-text-secondary)';
-    }
-  };
+  const divergenceColor =
+    binah.divergence_level === 'high' ? 'text-red-400' :
+    binah.divergence_level === 'low'  ? 'text-green-400' :
+    'text-yellow-400';
 
   return (
-    <div>
-      <div style={{
-        padding: '1.5rem',
-        background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(58, 134, 255, 0.1))',
-        borderRadius: 'var(--radius-lg)',
-        marginBottom: '1.5rem',
-        border: '2px solid var(--color-binah)'
-      }}>
-        <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-binah)' }}>
-          🌍 BinahSigma Multi-Civilizational Analysis
-        </h3>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-          Comparing Western (Gemini) and Eastern (DeepSeek) AI perspectives to detect civilizational biases and blind spots
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="p-5 rounded-xl bg-gradient-to-br from-accent/10 to-primary/10 border-2 border-accent/30">
+        <div className="flex items-center gap-3 mb-1">
+          <GitMerge className="w-5 h-5 text-accent" />
+          <h3 className="text-xl font-bold text-accent">BinahSigma Multi-Civilizational Analysis</h3>
+        </div>
+        <p className="text-slate-400 text-sm">
+          Western (VertexAI) vs Eastern (DeepSeek) perspectives — civilizational bias detection
         </p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-3 mb-3">
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-md)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
-            Bias Delta
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: getDivergenceColor(binah.divergence_level)
-          }}>
-            {binah.bias_delta}%
-          </div>
+      {/* Metrics row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-xl bg-surface/60 border border-white/8 text-center">
+          <p className="text-xs text-slate-400 mb-1">Bias Delta</p>
+          <p className={`text-3xl font-bold font-mono ${divergenceColor}`}>{binah.bias_delta}%</p>
         </div>
-
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-md)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
-            Divergence Level
-          </div>
-          <div style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: getDivergenceColor(binah.divergence_level),
-            textTransform: 'uppercase'
-          }}>
-            {binah.divergence_level}
-          </div>
+        <div className="p-4 rounded-xl bg-surface/60 border border-white/8 text-center">
+          <p className="text-xs text-slate-400 mb-1">Divergence</p>
+          <p className={`text-xl font-bold uppercase ${divergenceColor}`}>{binah.divergence_level}</p>
         </div>
-
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-md)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
-            Blind Spots Detected
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: 'var(--color-accent)'
-          }}>
-            {binah.blind_spots_detected || 0}
-          </div>
+        <div className="p-4 rounded-xl bg-surface/60 border border-white/8 text-center">
+          <p className="text-xs text-slate-400 mb-1">Blind Spots</p>
+          <p className="text-3xl font-bold font-mono text-accent">{binah.blind_spots_detected || 0}</p>
         </div>
       </div>
 
-      {/* Blind Spots Comparison */}
-      <div className="grid grid-cols-2 mb-3">
-        {/* Western Blind Spots */}
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'rgba(58, 134, 255, 0.1)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid rgba(58, 134, 255, 0.3)'
-        }}>
-          <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-chochmah)' }}>
-            🌐 Western Perspective Blind Spots
-          </h4>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-            What Western AI (Gemini) tends to miss or undervalue
-          </p>
-          <ul style={{ paddingLeft: '1.5rem' }}>
+      {/* Blind spots comparison */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Western */}
+        <div className="p-5 rounded-xl bg-blue-500/5 border border-blue-500/25">
+          <div className="flex items-center gap-2 mb-1">
+            <Globe className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary text-sm">Western Perspective</span>
+          </div>
+          <div className="mb-3">
+            <ProviderBadge provider="vertex" label="gemini-2.5-pro" />
+          </div>
+          <p className="text-xs text-slate-500 mb-3">What Western AI tends to miss:</p>
+          <ul className="space-y-2">
             {binah.sigma_synthesis?.west_blind_spots?.map((spot, idx) => (
-              <li key={idx} style={{
-                marginBottom: '0.75rem',
-                color: 'var(--color-text-primary)',
-                lineHeight: '1.5'
-              }}>
+              <li key={idx} className="flex gap-2 text-sm text-slate-300 leading-relaxed">
+                <span className="text-primary flex-shrink-0 mt-0.5">·</span>
                 {spot}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Eastern Blind Spots */}
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'rgba(6, 214, 160, 0.1)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid rgba(6, 214, 160, 0.3)'
-        }}>
-          <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-binah)' }}>
-            🌏 Eastern Perspective Blind Spots
-          </h4>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-            What Eastern AI (DeepSeek) tends to miss or undervalue
-          </p>
-          <ul style={{ paddingLeft: '1.5rem' }}>
+        {/* Eastern */}
+        <div className="p-5 rounded-xl bg-green-500/5 border border-green-500/25">
+          <div className="flex items-center gap-2 mb-1">
+            <Map className="w-4 h-4 text-accent" />
+            <span className="font-semibold text-accent text-sm">Eastern Perspective</span>
+          </div>
+          <div className="mb-3">
+            <ProviderBadge provider="deepseek" label="deepseek-chat" />
+          </div>
+          <p className="text-xs text-slate-500 mb-3">What Eastern AI tends to miss:</p>
+          <ul className="space-y-2">
             {binah.sigma_synthesis?.east_blind_spots?.map((spot, idx) => (
-              <li key={idx} style={{
-                marginBottom: '0.75rem',
-                color: 'var(--color-text-primary)',
-                lineHeight: '1.5'
-              }}>
+              <li key={idx} className="flex gap-2 text-sm text-slate-300 leading-relaxed">
+                <span className="text-accent flex-shrink-0 mt-0.5">·</span>
                 {spot}
               </li>
             ))}
@@ -148,28 +84,18 @@ function BinahSigmaView({ binah }: BinahSigmaViewProps) {
         </div>
       </div>
 
-      {/* Universal Convergence */}
+      {/* Universal convergence */}
       {binah.sigma_synthesis?.universal_convergence && binah.sigma_synthesis.universal_convergence.length > 0 && (
-        <div style={{
-          padding: '1.5rem',
-          backgroundColor: 'rgba(63, 185, 80, 0.1)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid rgba(63, 185, 80, 0.3)',
-          marginBottom: '1.5rem'
-        }}>
-          <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-success)' }}>
-            🤝 Universal Convergence Points
-          </h4>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-            Values and concerns recognized by both civilizational perspectives
-          </p>
-          <ul style={{ paddingLeft: '1.5rem' }}>
+        <div className="p-5 rounded-xl bg-green-500/5 border border-green-500/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-green-400" />
+            <span className="font-semibold text-green-400 text-sm">Universal Convergence Points</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">Values recognized by both civilizational perspectives:</p>
+          <ul className="space-y-2">
             {binah.sigma_synthesis.universal_convergence.map((point, idx) => (
-              <li key={idx} style={{
-                marginBottom: '0.75rem',
-                color: 'var(--color-text-primary)',
-                fontWeight: 500
-              }}>
+              <li key={idx} className="flex gap-2 text-sm text-slate-300 font-medium leading-relaxed">
+                <span className="text-green-500 flex-shrink-0 mt-0.5">·</span>
                 {point}
               </li>
             ))}
@@ -177,55 +103,28 @@ function BinahSigmaView({ binah }: BinahSigmaViewProps) {
         </div>
       )}
 
-      {/* Transcendent Synthesis */}
+      {/* Transcendent synthesis */}
       {binah.sigma_synthesis?.transcendent_synthesis && (
-        <div style={{
-          padding: '1.5rem',
-          background: 'linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary))',
-          borderRadius: 'var(--radius-md)',
-          border: '2px solid var(--color-binah)'
-        }}>
-          <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-binah)' }}>
-            🔄 Transcendent Synthesis
-          </h4>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-            A third path that transcends both Western and Eastern blind spots
-          </p>
-          <div style={{
-            padding: '1rem',
-            backgroundColor: 'var(--color-bg-tertiary)',
-            borderRadius: 'var(--radius-md)',
-            lineHeight: '1.8',
-            fontSize: '0.95rem'
-          }}>
-            {binah.sigma_synthesis.transcendent_synthesis}
+        <div className="p-5 rounded-xl bg-gradient-to-br from-surface to-surface/50 border-2 border-accent/30">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <span className="font-semibold text-accent text-sm">Transcendent Synthesis</span>
+            <ProviderBadge provider="vertex" label="gemini-2.5-pro" />
           </div>
+          <p className="text-xs text-slate-500 mb-3">A third path that transcends both blind spots:</p>
+          <blockquote className="synthesis-quote text-sm">
+            {binah.sigma_synthesis.transcendent_synthesis}
+          </blockquote>
         </div>
       )}
 
-      {/* Contextual Depth Score */}
-      <div style={{
-        marginTop: '1.5rem',
-        padding: '1rem',
-        backgroundColor: 'var(--color-bg-tertiary)',
-        borderRadius: 'var(--radius-md)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      {/* Contextual depth footer */}
+      <div className="flex items-center justify-between p-4 rounded-xl bg-surface/60 border border-white/8">
         <div>
-          <span style={{ fontWeight: 500 }}>Contextual Depth Score:</span>
-          <span style={{ marginLeft: '0.5rem', color: 'var(--color-text-secondary)' }}>
-            BinahSigma achieves inherently deep contextual understanding
-          </span>
+          <span className="text-sm font-medium text-slate-300">Contextual Depth Score</span>
+          <span className="text-xs text-slate-500 ml-2">BinahSigma achieves inherently deep contextual understanding</span>
         </div>
-        <div style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          color: 'var(--color-binah)'
-        }}>
-          {binah.contextual_depth_score}%
-        </div>
+        <span className="text-2xl font-bold text-accent font-mono">{binah.contextual_depth_score}%</span>
       </div>
     </div>
   );

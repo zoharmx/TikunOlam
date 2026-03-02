@@ -127,7 +127,8 @@ Emphasize quality of insight over quantity. Acknowledge what you don't know.
         prompt = self.get_prompt(scenario, previous_results)
 
         # Use Claude for deeper reasoning
-        response = self.call_claude(prompt, model=model)
+        # Call AI — Mistral primary, VertexAI fallback
+        response = self.call_mistral(prompt, model=model)
 
         result = self._parse_response(response)
 
@@ -144,6 +145,9 @@ Emphasize quality of insight over quantity. Acknowledge what you don't know.
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """Parse Chochmah response."""
         try:
+            # Strip markdown formatting (Mistral uses **bold:** values)
+            response = self._strip_markdown(response)
+
             # Extract metrics
             confidence = self._extract_percentage(response, "confidence_level", 70)
             humility = self._extract_percentage(response, "epistemic_humility", 50)

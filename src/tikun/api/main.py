@@ -311,9 +311,17 @@ async def list_jobs(limit: int = 100, status: Optional[str] = None):
     # Limit
     job_list = job_list[:limit]
 
+    # Ensure each job has job_id field (backend stores as "id" internally)
+    normalized = []
+    for job in job_list:
+        j = dict(job)
+        if "job_id" not in j:
+            j["job_id"] = j.get("id", "")
+        normalized.append(j)
+
     return {
-        "jobs": job_list,
-        "total": len(job_list)
+        "jobs": normalized,
+        "total": len(normalized)
     }
 
 
@@ -339,6 +347,12 @@ async def process_analysis_background(job_id: str, request: AnalysisRequest):
         )
 
         duration = time.time() - start_time
+
+        # Generate summary (required by frontend)
+        if request.include_full_results:
+            summary_dict = orchestrator.get_summary(results)
+            results['summary'] = summary_dict
+            results['case_name'] = results.get('metadata', {}).get('case_name', request.case_name or 'unknown')
 
         # Load job again and update with results
         job = persistence.load_job(job_id)

@@ -21,7 +21,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 # TEMPORARY: Comment out Anthropic to test if it causes overhead
 # from anthropic import Anthropic
-from openai import OpenAI
+from openai import OpenAI, APIStatusError as OpenAIStatusError
 
 from tikun.config import TikunConfig
 from tikun.utils.logging import get_logger, PerformanceLogger
@@ -69,44 +69,66 @@ class BaseSefirah(ABC):
         self._init_ai_clients()
 
     def _init_ai_clients(self) -> None:
-        """Initialize AI API clients."""
+        """Initialize AI API clients (multi-provider, Feb 2026 distribution)."""
+        from tikun.ai_clients import (
+            init_vertex_ai,
+            get_deepseek_client,
+            get_grok_client,
+            get_mistral_client,
+            get_openai_client,
+        )
+
+        # VertexAI — always initialized (primary fallback for all Sefirot)
         try:
-            # Vertex AI (Gemini via Google Cloud) - Singleton initialization
-            # This ensures vertexai.init() is called only ONCE across all Sefirot
-            from tikun.ai_clients import init_vertex_ai
             init_vertex_ai(self.config)
             self.logger.debug("Vertex AI client ready")
-
-            # Claude (Anthropic) - DISABLED FOR PERFORMANCE TESTING
-            # TEMPORARY: Completely disabled to eliminate potential overhead
-            self.claude_client = None
-            self.claude_available = False
-            # Anthropic import and initialization commented out
-
-            # Original code (commented for testing):
-            # if self.config.anthropic_api_key and self.config.anthropic_api_key not in ['placeholder', 'placeholder_no_usado', 'your_anthropic_api_key_here', '']:
-            #     try:
-            #         self.claude_client = Anthropic(api_key=self.config.anthropic_api_key)
-            #         self.claude_available = True
-            #     except Exception as e:
-            #         self.claude_client = None
-            #         self.claude_available = False
-            # else:
-            #     self.claude_client = None
-            #     self.claude_available = False
-
-            # DeepSeek (OpenAI-compatible) - Singleton client
-            from tikun.ai_clients import get_deepseek_client
-            self.deepseek_client = get_deepseek_client(self.config)
-            self.logger.debug("DeepSeek client ready")
-
         except Exception as e:
-            self.logger.error(
-                f"Failed to initialize AI clients",
-                error=str(e),
-                exc_info=True
-            )
+            self.logger.error("Failed to initialize Vertex AI", error=str(e))
             raise
+
+        # Claude — disabled (no key)
+        self.claude_client = None
+        self.claude_available = False
+
+        # DeepSeek — Binah East, Netzach
+        try:
+            self.deepseek_client = get_deepseek_client(self.config)
+            self.deepseek_available = True
+            self.logger.debug("DeepSeek client ready")
+        except Exception as e:
+            self.deepseek_client = None
+            self.deepseek_available = False
+            self.logger.warning("DeepSeek unavailable", error=str(e))
+
+        # Grok (xAI) — Keter, Malchut
+        try:
+            self.grok_client = get_grok_client(self.config)
+            self.grok_available = True
+            self.logger.debug("Grok (xAI) client ready")
+        except Exception as e:
+            self.grok_client = None
+            self.grok_available = False
+            self.logger.warning("Grok unavailable, will fallback to VertexAI", error=str(e))
+
+        # Mistral — Chochmah, Yesod
+        try:
+            self.mistral_client = get_mistral_client(self.config)
+            self.mistral_available = True
+            self.logger.debug("Mistral client ready")
+        except Exception as e:
+            self.mistral_client = None
+            self.mistral_available = False
+            self.logger.warning("Mistral unavailable, will fallback to VertexAI", error=str(e))
+
+        # OpenAI — Tiferet
+        try:
+            self.openai_client = get_openai_client(self.config)
+            self.openai_available = True
+            self.logger.debug("OpenAI client ready")
+        except Exception as e:
+            self.openai_client = None
+            self.openai_available = False
+            self.logger.warning("OpenAI unavailable, will fallback to VertexAI", error=str(e))
 
     @abstractmethod
     def process(
@@ -170,19 +192,22 @@ class BaseSefirah(ABC):
         try:
             self.logger.debug(f"Calling Gemini via Vertex AI", model=model)
 
-            gemini_model = GenerativeModel(model)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+                gemini_model = GenerativeModel(model)
 
-            generation_config = GenerationConfig(
-                temperature=temperature,
-                max_output_tokens=8192,
-                top_p=0.9,
-                top_k=40
-            )
+                generation_config = GenerationConfig(
+                    temperature=temperature,
+                    max_output_tokens=8192,
+                    top_p=0.9,
+                    top_k=40
+                )
 
-            response = gemini_model.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
+                response = gemini_model.generate_content(
+                    prompt,
+                    generation_config=generation_config
+                )
 
             result = response.text
             self.logger.debug(f"Vertex AI response received", length=len(result))
@@ -285,20 +310,26 @@ class BaseSefirah(ABC):
 
             response = self.deepseek_client.chat.completions.create(
                 model=model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
                 max_tokens=8192,
             )
 
             result = response.choices[0].message.content
             self.logger.debug(f"DeepSeek response received", length=len(result))
-
             return result
+
+        except OpenAIStatusError as e:
+            # 402 = saldo insuficiente — error permanente, NO reintentar
+            if e.status_code == 402:
+                self.logger.warning(
+                    "DeepSeek 402 Insufficient Balance — fallback a VertexAI (no se reintenta)",
+                    model=model
+                )
+                return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            # Otros errores HTTP (429, 5xx) → el decorador @retry los reintenta
+            self.logger.error(f"DeepSeek HTTP error {e.status_code}", model=model, error=str(e))
+            raise
 
         except Exception as e:
             self.logger.error(
@@ -308,6 +339,129 @@ class BaseSefirah(ABC):
                 exc_info=True
             )
             raise
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((Exception,)),
+        reraise=True
+    )
+    def call_grok(
+        self,
+        prompt: str,
+        model: str = "grok-3",
+        temperature: float = 0.7
+    ) -> str:
+        """
+        Call xAI Grok API (OpenAI-compatible).
+        Fallback: VertexAI Gemini.
+        Used by: Keter, Malchut
+        """
+        if not self.grok_available or self.grok_client is None:
+            self.logger.warning("Grok unavailable, using VertexAI fallback")
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+
+        try:
+            self.logger.debug(f"Calling Grok (xAI)", model=model)
+            response = self.grok_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=8192,
+            )
+            result = response.choices[0].message.content
+            self.logger.debug(f"Grok response received", length=len(result))
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                f"Grok API call failed, falling back to VertexAI",
+                model=model,
+                error=str(e)
+            )
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((Exception,)),
+        reraise=True
+    )
+    def call_mistral(
+        self,
+        prompt: str,
+        model: str = "mistral-large-latest",
+        temperature: float = 0.7
+    ) -> str:
+        """
+        Call Mistral AI API (OpenAI-compatible).
+        Fallback: VertexAI Gemini.
+        Used by: Chochmah, Yesod
+        """
+        if not self.mistral_available or self.mistral_client is None:
+            self.logger.warning("Mistral unavailable, using VertexAI fallback")
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+
+        try:
+            self.logger.debug(f"Calling Mistral", model=model)
+            response = self.mistral_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=8192,
+            )
+            result = response.choices[0].message.content
+            self.logger.debug(f"Mistral response received", length=len(result))
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                f"Mistral API call failed, falling back to VertexAI",
+                model=model,
+                error=str(e)
+            )
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((Exception,)),
+        reraise=True
+    )
+    def call_openai(
+        self,
+        prompt: str,
+        model: str = "gpt-4o",
+        temperature: float = 0.7
+    ) -> str:
+        """
+        Call OpenAI API.
+        Fallback: VertexAI Gemini.
+        Used by: Tiferet
+        """
+        if not self.openai_available or self.openai_client is None:
+            self.logger.warning("OpenAI unavailable, using VertexAI fallback")
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+
+        try:
+            self.logger.debug(f"Calling OpenAI", model=model)
+            response = self.openai_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=8192,
+            )
+            result = response.choices[0].message.content
+            self.logger.debug(f"OpenAI response received", length=len(result))
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                f"OpenAI API call failed, falling back to VertexAI",
+                model=model,
+                error=str(e)
+            )
+            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
 
     def safe_process(
         self,
@@ -494,6 +648,23 @@ class BaseSefirah(ABC):
                 error=str(e)
             )
             return []
+
+    def _strip_markdown(self, text: str) -> str:
+        """
+        Strip markdown formatting so regex parsers work regardless of AI provider.
+
+        Mistral and Grok often return bold markers (**field:** value) or
+        headers (## SECTION) that break plain-text regex patterns.
+        """
+        import re
+        # Remove bold/italic markers: **text** or *text*
+        text = re.sub(r'\*\*', '', text)
+        text = re.sub(r'(?<!\*)\*(?!\*)', '', text)
+        # Remove markdown headers: ## Header
+        text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+        # Remove inline code: `value`
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+        return text
 
     def format_previous_results(
         self,

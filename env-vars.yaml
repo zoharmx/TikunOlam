@@ -1,0 +1,5 @@
+CORS_ORIGINS: "https://tikunframework.web.app,https://tikunframework.firebaseapp.com,https://tikun.pro,http://localhost:5173"
+GCP_PROJECT_ID: "tikunframework"
+GCP_LOCATION: "us-central1"
+TIKUN_ENV: "production"
+PYTHONUNBUFFERED: "1"

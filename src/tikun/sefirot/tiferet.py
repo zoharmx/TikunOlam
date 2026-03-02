@@ -70,7 +70,8 @@ SYNTHESIS ANALYSIS:
         self.logger.info("Processing Tiferet (Synthesis)")
         model = self.config.get_model_for_sefirah("tiferet")
         prompt = self.get_prompt(scenario, previous_results)
-        response = self.call_claude(prompt, model=model)
+        # Call AI — OpenAI primary, VertexAI fallback
+        response = self.call_openai(prompt, model=model)
         return self._parse_response(response)
 
     def _parse_response(self, response: str) -> Dict[str, Any]:

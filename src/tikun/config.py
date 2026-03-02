@@ -44,7 +44,17 @@ class TikunConfig(BaseSettings):
 
     openai_api_key: Optional[str] = Field(
         default=None,
-        description="OpenAI API Key (optional fallback)"
+        description="OpenAI API Key (Tiferet)"
+    )
+
+    grok_api_key: Optional[str] = Field(
+        default=None,
+        description="xAI Grok API Key (Keter, Malchut)"
+    )
+
+    mistral_api_key: Optional[str] = Field(
+        default=None,
+        description="Mistral AI API Key (Chochmah, Yesod)"
     )
 
     # ============================================================================
@@ -157,6 +167,8 @@ class TikunConfig(BaseSettings):
         "anthropic_api_key",
         "deepseek_api_key",
         "openai_api_key",
+        "grok_api_key",
+        "mistral_api_key",
         "datadog_api_key",
         "datadog_app_key",
         mode="before"

@@ -25,6 +25,16 @@
   .glow-text {
     text-shadow: 0 0 20px rgba(58, 134, 255, 0.5);
   }
+
+  /* Verdict classes */
+  .verdict-go          { @apply text-green-400 bg-green-500/10 border-green-500/30; }
+  .verdict-no-go       { @apply text-red-400 bg-red-500/10 border-red-500/30; }
+  .verdict-conditional { @apply text-yellow-400 bg-yellow-500/10 border-yellow-500/30; }
+
+  /* BinahSigma synthesis quote */
+  .synthesis-quote {
+    @apply italic leading-relaxed text-slate-300 border-l-2 border-accent pl-4 py-1;
+  }
 }
 
 /* Custom Scrollbar */

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { PENTAGON_SCENARIO } from '../data/pentagonCase';
 
 interface AnalysisFormProps {
   onSubmit: (scenario: string, caseName?: string) => void;
@@ -18,7 +19,13 @@ function AnalysisForm({ onSubmit }: AnalysisFormProps) {
 
   const exampleScenarios = [
     {
-      name: 'Universal Basic Income (UBI)',
+      name: 'Anthropic vs. Pentagon',
+      flagship: true,
+      text: PENTAGON_SCENARIO,
+    },
+    {
+      name: 'Universal Basic Income',
+      flagship: false,
       text: `Proposal: Implement a global Universal Basic Income funded by redirecting 1% of worldwide military spending.
 
 Context:
@@ -39,10 +46,11 @@ Geopolitical considerations:
 - Requires cooperation from NATO, BRICS, China, Russia, USA
 - Potential sovereignty concerns
 - Defense budget implications
-- Economic impact on recipient nations`
+- Economic impact on recipient nations`,
     },
     {
       name: 'AI Governance Framework',
+      flagship: false,
       text: `Proposal: Create an international AI governance body similar to the IAEA for nuclear energy.
 
 Key provisions:
@@ -62,8 +70,8 @@ Critical questions:
 - Who sets the standards?
 - How to balance innovation with safety?
 - Enforcement across sovereign nations
-- Corporate vs. public control`
-    }
+- Corporate vs. public control`,
+    },
   ];
 
   const loadExample = (text: string) => {
@@ -71,14 +79,14 @@ Critical questions:
   };
 
   return (
-    <div className="glass-panel p-8 rounded-2xl">
+    <div className="glass-panel p-4 sm:p-6 lg:p-8 rounded-2xl">
       <div className="flex items-center gap-3 mb-2">
-        <Sparkles className="w-6 h-6 text-primary" />
-        <h2 className="text-2xl font-bold text-white">Analyze Ethical Scenario</h2>
+        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Submit an Ethical Dilemma</h2>
       </div>
       <p className="text-slate-400 mb-8">
-        Enter a scenario for multi-civilizational ethical analysis through the 10 Sefirot.
-        BinahSigma will activate automatically for geopolitical content.
+        Describe any ethical scenario for multi-civilizational analysis through 10 reasoning stages and 6 AI providers.
+        BinahSigma activates automatically for geopolitical content.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -111,7 +119,7 @@ Critical questions:
           />
           <div className="mt-2 text-xs text-slate-500">
             {scenario.length} characters
-            {scenario.length > 500 && ' - BinahSigma may activate for geopolitical content'}
+            {scenario.length > 500 && ' · BinahSigma may activate for geopolitical content'}
           </div>
         </div>
 
@@ -119,14 +127,23 @@ Critical questions:
           <p className="text-sm font-medium text-slate-300 mb-3">
             Example Scenarios:
           </p>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 sm:gap-3 flex-nowrap sm:flex-wrap overflow-x-auto pb-2">
             {exampleScenarios.map((example, idx) => (
               <button
                 key={idx}
                 type="button"
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-sm text-slate-300 transition-all"
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm text-slate-300 transition-all whitespace-nowrap ${
+                  example.flagship
+                    ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-300'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20'
+                }`}
                 onClick={() => loadExample(example.text)}
               >
+                {example.flagship && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/30 text-yellow-400 uppercase tracking-wider">
+                    Flagship
+                  </span>
+                )}
                 {example.name}
               </button>
             ))}
@@ -149,43 +166,43 @@ Critical questions:
         <ul className="space-y-1.5 text-xs text-slate-400">
           <li className="flex items-start gap-2">
             <span className="text-sef-keter">•</span>
-            <span>Keter validates ethical alignment</span>
+            <span>Keter (Grok-3) validates ethical alignment</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-chochmah">•</span>
-            <span>Chochmah analyzes wisdom and precedents</span>
+            <span>Chochmah (Mistral) analyzes wisdom and precedents</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-binah">•</span>
-            <span>Binah performs multi-civilizational understanding (BinahSigma)</span>
+            <span>Binah (VertexAI + DeepSeek) runs BinahSigma bias detection</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-chesed">•</span>
-            <span>Chesed evaluates opportunities</span>
+            <span>Chesed (VertexAI) evaluates opportunities</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-gevurah">•</span>
-            <span>Gevurah assesses risks</span>
+            <span>Gevurah (VertexAI) assesses risks</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-tiferet">•</span>
-            <span>Tiferet synthesizes balance</span>
+            <span>Tiferet (GPT-4o) synthesizes balance</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-netzach">•</span>
-            <span>Netzach formulates strategy</span>
+            <span>Netzach (DeepSeek) formulates strategy</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-hod">•</span>
-            <span>Hod designs communication</span>
+            <span>Hod (VertexAI) designs communication</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-yesod">•</span>
-            <span>Yesod integrates all insights</span>
+            <span>Yesod (Mistral) integrates all insights → GO/NO-GO</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-sef-malchut">•</span>
-            <span>Malchut makes final decision</span>
+            <span>Malchut (Grok-3) makes the final decision</span>
           </li>
         </ul>
       </div>

@@ -103,11 +103,11 @@ INTEGRATION SUMMARY:
         """Process Yesod integration."""
         self.logger.info("Processing Yesod (Integration)")
 
-        # Yesod uses Claude for sophisticated integration
+        # Call AI — Mistral primary, VertexAI fallback
         model = self.config.get_model_for_sefirah("yesod")
         prompt = self.get_prompt(scenario, previous_results)
 
-        response = self.call_claude(prompt, model=model)
+        response = self.call_mistral(prompt, model=model)
 
         result = self._parse_response(response)
 
@@ -124,6 +124,9 @@ INTEGRATION SUMMARY:
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """Parse Yesod response."""
         try:
+            # Strip markdown formatting (Mistral uses **bold:** values)
+            response = self._strip_markdown(response)
+
             # Extract metrics
             readiness = self._extract_percentage(response, "readiness_score", 60)
 

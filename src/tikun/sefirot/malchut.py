@@ -117,11 +117,11 @@ FINAL SUMMARY:
         """Process final manifestation decision."""
         self.logger.info("Processing Malchut (Manifestation)")
 
-        # Malchut uses Claude for final decision
+        # Call AI — Grok (xAI) primary, VertexAI fallback
         model = self.config.get_model_for_sefirah("malchut")
         prompt = self.get_prompt(scenario, previous_results)
 
-        response = self.call_claude(prompt, model=model)
+        response = self.call_grok(prompt, model=model)
 
         result = self._parse_response(response)
 
@@ -138,6 +138,9 @@ FINAL SUMMARY:
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """Parse Malchut response."""
         try:
+            # Strip markdown formatting (Grok uses **bold:** values)
+            response = self._strip_markdown(response)
+
             # Extract quality
             quality_match = re.search(r'manifestation_quality[:\s]+(poor|acceptable|good|excellent)', response, re.IGNORECASE)
             quality = quality_match.group(1).lower() if quality_match else "acceptable"

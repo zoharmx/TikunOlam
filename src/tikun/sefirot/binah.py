@@ -315,7 +315,8 @@ ANALYSIS:
                 scenario, west_response, east_response, west_blinds, east_blinds, universal_convergence
             )
 
-            synthesis_text = self.call_claude(synthesis_prompt)
+            # Synthesis: VertexAI (neutral integrator between West and East)
+            synthesis_text = self.call_gemini(synthesis_prompt, model="gemini-2.5-pro")
 
             # Build BinahSigma analysis
             sigma_analysis = BinahSigmaAnalysis(

@@ -36,14 +36,15 @@ gcloud run deploy tikun-olam ^
   --region us-central1 ^
   --platform managed ^
   --allow-unauthenticated ^
-  --memory 2Gi ^
-  --cpu 2 ^
-  --timeout 300s ^
-  --concurrency 80 ^
-  --min-instances 0 ^
-  --max-instances 10 ^
-  --set-env-vars "GCP_PROJECT_ID=tikunframework,GCP_LOCATION=us-central1,TIKUN_ENV=production,PYTHONUNBUFFERED=1" ^
-  --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest,DEEPSEEK_API_KEY=DEEPSEEK_API_KEY:latest,DATADOG_API_KEY=DATADOG_API_KEY:latest,DATADOG_APP_KEY=DATADOG_APP_KEY:latest"
+  --memory 4Gi ^
+  --cpu 4 ^
+  --timeout 900s ^
+  --concurrency 10 ^
+  --min-instances 1 ^
+  --max-instances 5 ^
+  --no-cpu-throttling ^
+  --set-env-vars "GCP_PROJECT_ID=tikunframework,GCP_LOCATION=us-central1,TIKUN_ENV=production,PYTHONUNBUFFERED=1,CORS_ORIGINS=https://tikunframework.web.app,https://tikunframework.firebaseapp.com,https://tikun.pro,http://localhost:5173" ^
+  --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest,DEEPSEEK_API_KEY=DEEPSEEK_API_KEY:latest,DATADOG_API_KEY=DATADOG_API_KEY:latest,DATADOG_APP_KEY=DATADOG_APP_KEY:latest,GROK_API_KEY=GROK_API_KEY:latest,MISTRAL_API_KEY=MISTRAL_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
 
 echo.
 echo [4/4] Getting service URL...

@@ -71,7 +71,8 @@ STRATEGY ANALYSIS:
         self.logger.info("Processing Netzach (Strategy)")
         model = self.config.get_model_for_sefirah("netzach")
         prompt = self.get_prompt(scenario, previous_results)
-        response = self.call_gemini(prompt, model=model)
+        # Call AI — DeepSeek primary, VertexAI fallback
+        response = self.call_deepseek(prompt, model=model)
         return self._parse_response(response)
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
