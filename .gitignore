@@ -44,6 +44,8 @@ venv.bak/
 .env.local
 .env.*.local
 .env.no-claude
+frontend/.env.production
+frontend/.env.*.local
 *.json.bak
 vertex-ai-key.json
 *-key.json
