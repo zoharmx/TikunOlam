@@ -59,6 +59,12 @@ class TikunAPI {
     const response = await this.client.get('/metrics');
     return response.data;
   }
+
+  async analyzeMultiple(
+    scenarios: AnalysisRequest[]
+  ): Promise<JobResponse[]> {
+    return Promise.all(scenarios.map((s) => this.analyzeAsync(s)));
+  }
 }
 
 // Get API URL from environment variables

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, History, Terminal, LogOut, Activity, Menu, X } from 'lucide-react';
+import { Play, History, Terminal, LogOut, Activity, Menu, X, GitCompare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import AnalysisForm from '../components/AnalysisForm';
@@ -9,13 +9,18 @@ import Results from '../components/Results';
 import ObservabilityPanel from '../components/ObservabilityPanel';
 import HistoryView from '../components/HistoryView';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { ComparisonForm } from '../components/ComparisonForm';
+import { ScenarioComparisonView } from '../components/ScenarioComparisonView';
 import api from '../services/api';
 import type { AnalysisResponse } from '../types';
+import type { ComparisonScenario } from '../components/ComparisonForm';
 import { PENTAGON_SCENARIO } from '../data/pentagonCase';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
-  const [activeView, setActiveView] = useState<'new' | 'history' | 'observability'>('new');
+  const [activeView, setActiveView] = useState<'new' | 'history' | 'observability' | 'compare'>('new');
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [comparisonResults, setComparisonResults] = useState<{ label: string; caseName: string; analysis: AnalysisResponse }[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -190,6 +195,49 @@ const Dashboard = () => {
     setCurrentScenarioId(null);
   };
 
+  const handleCompare = async (scenarios: ComparisonScenario[]) => {
+    setComparisonLoading(true);
+    setComparisonResults(null);
+    try {
+      const jobResponses = await api.analyzeMultiple(
+        scenarios.map((s) => ({ scenario: s.scenario, case_name: s.case_name }))
+      );
+      const jobIds = jobResponses.map((r) => r.job_id);
+
+      // Poll all jobs until done
+      const resolved = await Promise.all(
+        jobIds.map(async (jobId, i) => {
+          for (let attempt = 0; attempt < 60; attempt++) {
+            await new Promise((res) => setTimeout(res, 10000));
+            const status = await api.getJobStatus(jobId);
+            if (status.status === 'completed' && status.results) {
+              const r = status.results as any;
+              return {
+                label: scenarios[i].label,
+                caseName: scenarios[i].case_name,
+                analysis: {
+                  sefirot_results: r.sefirot_results || r,
+                  summary: r.summary || {},
+                  metadata: r.metadata || {},
+                  case_name: scenarios[i].case_name,
+                  status: 'completed',
+                  timestamp: r.metadata?.timestamp || '',
+                } as AnalysisResponse,
+              };
+            }
+            if (status.status === 'failed') throw new Error(`Scenario ${scenarios[i].label} failed`);
+          }
+          throw new Error(`Scenario ${scenarios[i].label} timed out`);
+        })
+      );
+      setComparisonResults(resolved);
+    } catch (err: any) {
+      alert(`Comparison error: ${err.message}`);
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-background text-slate-200 font-sans">
       {/* Mobile menu button */}
@@ -241,6 +289,12 @@ const Dashboard = () => {
             label="History"
             active={activeView === 'history'}
             onClick={() => { setActiveView('history'); setSidebarOpen(false); }}
+          />
+          <SidebarItem
+            icon={<GitCompare size={18} />}
+            label="Compare"
+            active={activeView === 'compare'}
+            onClick={() => { setActiveView('compare'); setSidebarOpen(false); }}
           />
           <SidebarItem
             icon={<Terminal size={18} />}
@@ -351,6 +405,20 @@ const Dashboard = () => {
                   </motion.div>
                 )}
               </>
+            )}
+
+            {/* COMPARE VIEW */}
+            {activeView === 'compare' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                {!comparisonResults ? (
+                  <ComparisonForm onSubmit={handleCompare} isLoading={comparisonLoading} />
+                ) : (
+                  <ScenarioComparisonView
+                    scenarios={comparisonResults}
+                    onReset={() => setComparisonResults(null)}
+                  />
+                )}
+              </motion.div>
             )}
 
             {/* HISTORY VIEW */}

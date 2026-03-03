@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle,
@@ -11,10 +11,19 @@ import {
   Share2,
   Printer,
   Clock,
-  Cpu
+  Cpu,
+  FileText,
+  Loader2,
+  BarChart2,
 } from 'lucide-react';
 import ProviderBadge from './ProviderBadge';
 import BinahSigmaView from './BinahSigmaView';
+import { EthicalRiskGauge } from './EthicalRiskGauge';
+import { SefirotRadarChart } from './SefirotRadarChart';
+import { IndustryBenchmarkBar } from './IndustryBenchmarkBar';
+import { ExecutiveReportTemplate } from './ExecutiveReportTemplate';
+import { calculateERI, getERIHex } from '../utils/ethicalRiskIndex';
+import { BENCHMARK_LIST } from '../data/benchmarks';
 import { PROVIDER_LABELS } from '../types';
 import type { ProviderKey } from '../types';
 
@@ -26,7 +35,10 @@ interface ResultsProps {
 function Results({ results, onReset }: ResultsProps) {
   console.log('🎨 Results component MOUNTING with data:', results);
 
-  const [activeTab, setActiveTab] = useState<'summary' | 'sefirot' | 'binah'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'sefirot' | 'binah' | 'executive'>('summary');
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('technology');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   console.log('✅ Results component state initialized');
 
@@ -101,6 +113,38 @@ function Results({ results, onReset }: ResultsProps) {
     window.print();
   };
 
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+    setPdfLoading(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const { jsPDF } = await import('jspdf');
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageW = 210;
+      const imgH = (canvas.height / canvas.width) * pageW;
+      const pageH = 297;
+      let y = 0;
+      while (y < imgH) {
+        const sourceY = (y / imgH) * canvas.height;
+        const sliceH = Math.min((pageH / imgH) * canvas.height, canvas.height - sourceY);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceH;
+        const ctx = sliceCanvas.getContext('2d')!;
+        ctx.drawImage(canvas, 0, -sourceY);
+        if (y > 0) pdf.addPage();
+        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, (sliceH / canvas.width) * pageW);
+        y += pageH;
+      }
+      const safeName = case_name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+      pdf.save(`TikunOlam_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   const handleShare = () => {
     const shareData = {
       case_name,
@@ -167,6 +211,27 @@ function Results({ results, onReset }: ResultsProps) {
             )}
           </div>
           <div className="flex gap-3 items-center flex-wrap">
+            {/* ERI badge */}
+            {sefirot_results && (() => {
+              const eri = calculateERI(sefirot_results as any);
+              return (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5">
+                  <BarChart2 size={13} style={{ color: getERIHex(eri.score) }} />
+                  <span className="text-xs font-bold" style={{ color: getERIHex(eri.score) }}>ERI {eri.score}</span>
+                  <span className="text-white/40 text-xs">{eri.label}</span>
+                </div>
+              );
+            })()}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #7c3aed88, #a78bfa88)' }}
+              title="Download Board-ready PDF"
+            >
+              {pdfLoading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+              PDF Report
+            </button>
             <button
               onClick={handlePrint}
               className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
@@ -184,7 +249,7 @@ function Results({ results, onReset }: ResultsProps) {
             <button
               onClick={handleDownload}
               className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-              title="Download Full Results"
+              title="Download Full Results JSON"
             >
               <Download className="w-5 h-5 text-slate-300" />
             </button>
@@ -232,6 +297,17 @@ function Results({ results, onReset }: ResultsProps) {
             BinahSigma Analysis
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('executive')}
+          className={`px-6 py-3 font-medium transition-all flex items-center gap-1.5 ${
+            activeTab === 'executive'
+              ? 'text-white border-b-2 border-purple-500'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <BarChart2 size={14} />
+          Executive
+        </button>
       </div>
 
       {/* Content */}
@@ -368,7 +444,70 @@ function Results({ results, onReset }: ResultsProps) {
             <BinahSigmaView binah={binah} />
           </motion.div>
         )}
+
+        {activeTab === 'executive' && (
+          <motion.div
+            key="executive"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Industry selector + download */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-white/50 text-sm">Compare vs industry:</span>
+                <select
+                  value={selectedIndustry}
+                  onChange={(e) => setSelectedIndustry(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500/50"
+                >
+                  {BENCHMARK_LIST.map((b) => (
+                    <option key={b.id} value={b.id} style={{ background: '#1e1b4b' }}>{b.label}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfLoading}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)' }}
+              >
+                {pdfLoading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                Download Board PDF
+              </button>
+            </div>
+
+            {/* ERI + Radar row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-1">
+                <EthicalRiskGauge sefirotResults={sefirot_results as any} />
+              </div>
+              <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                <h3 className="text-white/70 text-sm font-semibold mb-2 flex items-center gap-2">
+                  <BarChart2 size={14} /> Sefirot Radar — Scenario vs {BENCHMARK_LIST.find(b => b.id === selectedIndustry)?.label} avg
+                </h3>
+                <SefirotRadarChart sefirotResults={sefirot_results as any} benchmarkIndustry={selectedIndustry} />
+              </div>
+            </div>
+
+            {/* Industry Benchmark Bar */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+              <h3 className="text-white/70 text-sm font-semibold mb-4">Ethical Risk Index vs Industry Benchmarks</h3>
+              <IndustryBenchmarkBar sefirotResults={sefirot_results as any} caseName={case_name} />
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
+
+      {/* Hidden PDF template */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
+        <ExecutiveReportTemplate
+          ref={reportRef}
+          analysis={{ sefirot_results, summary, metadata, case_name, status: 'completed', timestamp: metadata?.timestamp || '' } as any}
+          industry={selectedIndustry}
+        />
+      </div>
     </motion.div>
   );
 }
