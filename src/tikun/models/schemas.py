@@ -100,6 +100,13 @@ class BinahSigmaAnalysis(BaseModel):
     transcendent_synthesis: str = Field(default="")
 
 
+class BinahPerspective(BaseModel):
+    """Score and reasoning for one civilizational perspective."""
+    score: int = Field(..., ge=-100, le=100, description="Approval score: -100 (strongly opposes) to +100 (strongly supports)")
+    reasoning: str = Field(default="", description="2-3 sentence justification from this perspective")
+    blind_spots: List[str] = Field(default_factory=list)
+
+
 class BinahResult(BaseModel):
     """Result model for Binah (Understanding)."""
     mode: Literal["simple", "sigma"] = Field(
@@ -113,11 +120,15 @@ class BinahResult(BaseModel):
         None,
         ge=0,
         le=100,
-        description="Divergence between perspectives (%)"
+        description="Divergence between perspectives: abs(west_score - east_score), capped at 100"
     )
     divergence_level: Optional[Literal["low", "medium", "high"]] = None
     blind_spots_detected: Optional[int] = Field(None, ge=0)
     convergence_points: Optional[int] = Field(None, ge=0)
+
+    # Structured per-perspective output (BinahSigma)
+    western_perspective: Optional[BinahPerspective] = Field(None, description="Western AI perspective")
+    eastern_perspective: Optional[BinahPerspective] = Field(None, description="Eastern AI perspective")
 
     sigma_synthesis: Optional[BinahSigmaAnalysis] = None
 

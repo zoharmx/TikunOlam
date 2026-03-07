@@ -50,6 +50,9 @@ export const ExecutiveReportTemplate = forwardRef<HTMLDivElement, Props>(
       color: '#1a1a2e',
       boxSizing: 'border-box',
       pageBreakAfter: 'always',
+      breakAfter: 'page',
+      position: 'relative',
+      overflow: 'hidden',
     };
     const hr: React.CSSProperties = { border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' };
     const h1: React.CSSProperties = { fontSize: 26, fontWeight: 'bold', margin: 0, color: '#1a1a2e' };

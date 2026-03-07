@@ -110,7 +110,20 @@ function Results({ results, onReset }: ResultsProps) {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!reportRef.current) { window.print(); return; }
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) { window.print(); return; }
+    const content = reportRef.current.outerHTML;
+    printWindow.document.write(
+      `<!DOCTYPE html><html><head><meta charset="utf-8">` +
+      `<title>${case_name || 'Tikun Olam Report'}</title>` +
+      `<style>*{box-sizing:border-box;}body{background:#fff;margin:0;padding:0;}` +
+      `@page{size:A4 portrait;margin:0;}</style></head>` +
+      `<body>${content}</body></html>`
+    );
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 600);
   };
 
   const handleDownloadPDF = async () => {
@@ -119,27 +132,64 @@ function Results({ results, onReset }: ResultsProps) {
     try {
       const { default: html2canvas } = await import('html2canvas');
       const { jsPDF } = await import('jspdf');
-      const element = reportRef.current;
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+
+      // El elemento esta oculto a -9999px. Lo movemos al viewport con z-index alto
+      // para que el navegador lo pinte antes de que html2canvas lo capture.
+      const wrapper = reportRef.current.parentElement!;
+      const origStyle = wrapper.style.cssText;
+      wrapper.style.cssText =
+        'position:fixed;top:0;left:0;width:794px;pointer-events:none;z-index:99999;opacity:0.01;';
+      // Esperar dos frames para que el navegador pinte el elemento
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 794,
+      });
+
+      wrapper.style.cssText = origStyle;
+
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Canvas tiene dimensiones cero - el elemento no fue renderizado');
+      }
+
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageW = 210;
-      const imgH = (canvas.height / canvas.width) * pageW;
-      const pageH = 297;
-      let y = 0;
-      while (y < imgH) {
-        const sourceY = (y / imgH) * canvas.height;
-        const sliceH = Math.min((pageH / imgH) * canvas.height, canvas.height - sourceY);
+      const pageW = 210; // mm
+      const pageH = 297; // mm
+      const pxPerMm = canvas.width / pageW;
+      const totalHeightMm = canvas.height / pxPerMm;
+
+      let yMm = 0;
+      while (yMm < totalHeightMm) {
+        const sliceHeightMm = Math.min(pageH, totalHeightMm - yMm);
+        const sourceYPx = Math.round(yMm * pxPerMm);
+        const sliceHeightPx = Math.round(sliceHeightMm * pxPerMm);
+
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceH;
+        sliceCanvas.height = sliceHeightPx;
         const ctx = sliceCanvas.getContext('2d')!;
-        ctx.drawImage(canvas, 0, -sourceY);
-        if (y > 0) pdf.addPage();
-        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, (sliceH / canvas.width) * pageW);
-        y += pageH;
+        ctx.drawImage(canvas, 0, -sourceYPx);
+
+        if (yMm > 0) pdf.addPage();
+        pdf.addImage(
+          sliceCanvas.toDataURL('image/png'),
+          'PNG',
+          0, 0,
+          pageW,
+          sliceHeightMm
+        );
+        yMm += pageH;
       }
+
       const safeName = case_name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
       pdf.save(`TikunOlam_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error('[PDF] Generation failed:', err);
+      alert('No se pudo generar el PDF. Usa el boton Imprimir y selecciona "Guardar como PDF" desde el navegador.');
     } finally {
       setPdfLoading(false);
     }

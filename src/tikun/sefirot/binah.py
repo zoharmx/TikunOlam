@@ -6,9 +6,9 @@ BinahSigma mode compares Western vs Eastern AI perspectives to expose blind spot
 """
 
 import re
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 from tikun.sefirot.base import BaseSefirah
-from tikun.models.schemas import BinahResult, BinahSigmaAnalysis
+from tikun.models.schemas import BinahResult, BinahSigmaAnalysis, BinahPerspective
 from tikun.utils.validation import detect_geopolitical_content
 
 # Datadog metrics
@@ -263,12 +263,16 @@ Analyze this scenario from your assigned civilizational perspective:
    - What moral principles apply?
 
 OUTPUT FORMAT:
+perspective_score: [integer from -100 to +100 — where -100 means this perspective STRONGLY OPPOSES the scenario as described, and +100 means STRONGLY SUPPORTS it. Be decisive: geopolitical conflicts should yield scores far from zero on each side]
+
+reasoning: [2-3 sentences: overall verdict of THIS perspective and why it scores as it does]
+
 primary_concerns:
 - [Concern 1]
 - [Concern 2]
 
 blind_spots:
-- [Blind spot 1 of THIS perspective]
+- [Blind spot 1 of THIS perspective — what THIS lens misses]
 - [Blind spot 2 of THIS perspective]
 
 risks_perceived:
@@ -302,25 +306,38 @@ ANALYSIS:
             west_concerns = self.extract_list(west_response, marker="-", section="primary_concerns")
             east_concerns = self.extract_list(east_response, marker="-", section="primary_concerns")
 
-            # Calculate divergence
-            bias_delta, divergence_level = self._calculate_divergence(
-                west_response, east_response, west_concerns, east_concerns
-            )
+            # Extract numeric scores (primary divergence signal)
+            west_score = self._extract_sigma_score(west_response)
+            east_score = self._extract_sigma_score(east_response)
 
-            # Find convergence points (similar concerns/values)
+            # bias_delta = absolute score difference, capped at 100
+            # e.g. west=+70 east=-15 → delta=85 (high civilizational divergence)
+            bias_delta = min(100, abs(west_score - east_score))
+
+            # Derive divergence level from bias_delta
+            if bias_delta >= 60:
+                divergence_level = "high"
+            elif bias_delta >= 30:
+                divergence_level = "medium"
+            else:
+                divergence_level = "low"
+
+            # Extract per-perspective reasoning
+            west_reasoning = self._extract_sigma_reasoning(west_response)
+            east_reasoning = self._extract_sigma_reasoning(east_response)
+
+            # Find convergence points
             universal_convergence = self._find_convergence(west_concerns, east_concerns)
 
             # Generate transcendent synthesis
             synthesis_prompt = self._get_synthesis_prompt(
                 scenario, west_response, east_response, west_blinds, east_blinds, universal_convergence
             )
-
-            # Synthesis: VertexAI (neutral integrator between West and East)
             synthesis_text = self.call_gemini(synthesis_prompt, model="gemini-2.5-pro")
 
             # Build BinahSigma analysis
             sigma_analysis = BinahSigmaAnalysis(
-                west_blind_spots=west_blinds[:6],  # Limit to top 6
+                west_blind_spots=west_blinds[:6],
                 east_blind_spots=east_blinds[:6],
                 universal_convergence=universal_convergence,
                 transcendent_synthesis=synthesis_text.strip()
@@ -328,19 +345,29 @@ ANALYSIS:
 
             result_data = {
                 "mode": "sigma",
-                "contextual_depth_score": 90,  # Sigma mode is inherently deep
+                "contextual_depth_score": 90,
                 "bias_delta": bias_delta,
                 "divergence_level": divergence_level,
                 "blind_spots_detected": len(west_blinds) + len(east_blinds),
                 "convergence_points": len(universal_convergence),
+                "western_perspective": {
+                    "score": west_score,
+                    "reasoning": west_reasoning,
+                    "blind_spots": west_blinds[:6],
+                },
+                "eastern_perspective": {
+                    "score": east_score,
+                    "reasoning": east_reasoning,
+                    "blind_spots": east_blinds[:6],
+                },
                 "sigma_synthesis": sigma_analysis.model_dump(),
                 "stakeholder_analysis": {
                     "western_priority": west_concerns[:3],
                     "eastern_priority": east_concerns[:3]
                 },
                 "ethical_tensions": [
-                    f"Western emphasis vs Eastern emphasis on {i+1}"
-                    for i in range(min(3, len(west_concerns)))
+                    f"Western vs Eastern framing of: {west_concerns[i][:80]}" if i < len(west_concerns) else f"Civilizational tension {i+1}"
+                    for i in range(min(3, max(len(west_concerns), len(east_concerns))))
                 ],
                 "contextual_factors": [
                     "Multi-civilizational value divergence",
@@ -357,42 +384,35 @@ ANALYSIS:
             self.logger.error("Failed to synthesize Sigma results", error=str(e), exc_info=True)
             raise
 
-    def _calculate_divergence(
-        self,
-        west: str,
-        east: str,
-        west_concerns: List[str],
-        east_concerns: List[str]
-    ) -> Tuple[int, str]:
-        """Calculate bias delta and divergence level."""
-        # Simple heuristic: divergence based on concern overlap
-        if not west_concerns or not east_concerns:
-            return 50, "medium"
+    def _extract_sigma_score(self, response: str) -> int:
+        """
+        Extract the numeric perspective_score from a sigma AI response.
 
-        # Count similar concerns (crude text similarity)
-        similar_count = 0
-        for w_concern in west_concerns:
-            for e_concern in east_concerns:
-                # Check for keyword overlap
-                w_words = set(w_concern.lower().split())
-                e_words = set(e_concern.lower().split())
-                overlap = len(w_words & e_words)
-                if overlap >= 2:  # At least 2 common words
-                    similar_count += 1
-                    break
+        Looks for 'perspective_score: N' where N is an integer in [-100, 100].
+        Falls back to 0 if not found (neutral), which keeps bias_delta honest.
+        """
+        match = re.search(r'perspective_score\s*:\s*([+-]?\d+)', response, re.IGNORECASE)
+        if match:
+            score = int(match.group(1))
+            return max(-100, min(100, score))
+        # Fallback: scan for any standalone signed integer near score keywords
+        match = re.search(r'score[:\s]+([+-]?\d{1,3})', response, re.IGNORECASE)
+        if match:
+            score = int(match.group(1))
+            if -100 <= score <= 100:
+                return score
+        return 0  # neutral if completely unparseable
 
-        total = max(len(west_concerns), len(east_concerns))
-        similarity = similar_count / total if total > 0 else 0
-        bias_delta = int((1 - similarity) * 100)
-
-        if bias_delta >= 60:
-            divergence_level = "high"
-        elif bias_delta >= 40:
-            divergence_level = "medium"
-        else:
-            divergence_level = "low"
-
-        return bias_delta, divergence_level
+    def _extract_sigma_reasoning(self, response: str) -> str:
+        """Extract the 'reasoning:' field from a sigma AI response."""
+        match = re.search(
+            r'reasoning\s*:\s*(.+?)(?=\n\s*\n|\nprimary_concerns|\nblind_spots|$)',
+            response,
+            re.IGNORECASE | re.DOTALL
+        )
+        if match:
+            return match.group(1).strip()[:500]
+        return ""
 
     def _find_convergence(
         self,
