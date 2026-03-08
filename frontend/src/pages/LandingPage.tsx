@@ -76,6 +76,13 @@ const LandingPage = () => {
               Case Study
             </button>
             <Link
+              to="/openaisix"
+              className="hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:bg-amber-500/10 transition-all"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              OpenAI × Altman
+            </Link>
+            <Link
               to="/login"
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all shadow-[0_0_16px_rgba(58,134,255,0.3)]"
             >
@@ -253,7 +260,73 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ── 7. FINAL CTA ───────────────────────────────────────────────────── */}
+      {/* ── 7. FEATURED CASE STUDY — OpenAI × Sam Altman ──────────────────── */}
+      <section className="py-20 px-5 sm:px-8 max-w-7xl mx-auto border-t border-white/5">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="flex flex-col lg:flex-row items-center gap-10 bg-gradient-to-br from-violet-900/20 via-slate-900/60 to-amber-900/10 border border-violet-500/25 rounded-3xl p-8 lg:p-12 relative overflow-hidden">
+            {/* Glow */}
+            <div className="absolute top-0 right-0 w-[400px] h-[300px] bg-violet-600/8 rounded-full blur-3xl pointer-events-none" />
+            {/* Left content */}
+            <div className="flex-1 relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-full uppercase tracking-widest">
+                  Live Analysis
+                </span>
+                <span className="text-xs text-slate-500">March 2026 · 8 min read</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
+                When OpenAI's Board Considers<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-blue-400">
+                  Firing Sam Altman (Again)
+                </span>
+              </h2>
+              <p className="text-slate-400 mb-6 leading-relaxed max-w-xl">
+                The framework revealed what humans miss: 71% civilizational divergence between Western and Eastern AI,
+                3 power dynamics no one discussed, and a solution that reframes the question itself.
+              </p>
+              <div className="flex flex-wrap gap-3 mb-8">
+                {[
+                  { label: 'Verdict', value: 'CONDITIONAL GO', color: '#f59e0b' },
+                  { label: 'BinahSigma Δ', value: '71%', color: '#e63946' },
+                  { label: 'Blind Spots', value: '14', color: '#06d6a0' },
+                ].map(s => (
+                  <div key={s.label} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-center">
+                    <span className="text-xs text-slate-500 mr-2">{s.label}</span>
+                    <span className="text-sm font-bold font-mono" style={{ color: s.color }}>{s.value}</span>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/openaisix"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-colors"
+              >
+                Read Full Analysis <ArrowRight size={16} />
+              </Link>
+            </div>
+            {/* Right: score grid */}
+            <div className="flex-shrink-0 grid grid-cols-2 gap-3 w-full lg:w-64 relative z-10">
+              {[
+                { label: 'Risk Assessment', score: 95, color: '#e63946' },
+                { label: 'Strategic Ops', score: 85, color: '#06d6a0' },
+                { label: 'Ethical Align.', score: 75, color: '#9d4edd' },
+                { label: 'Final Verdict', score: 75, color: '#f59e0b' },
+              ].map(item => (
+                <div key={item.label} className="bg-white/5 border border-white/8 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold font-mono mb-1" style={{ color: item.color }}>{item.score}</p>
+                  <p className="text-xs text-slate-500">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── 8. FINAL CTA ───────────────────────────────────────────────────── */}
       <section className="py-28 px-5 sm:px-8 text-center border-t border-white/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
         <motion.div

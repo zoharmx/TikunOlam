@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 /* ─── Data extracted from tikun-full-results JSON ─── */
@@ -117,14 +117,12 @@ const PARADOXES = [
 
 /* ─── Section wrapper with fade-in ─── */
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
       className={className}
     >
       {children}
@@ -154,7 +152,7 @@ export default function OpenAICaseStudy() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050507] text-slate-200 font-sans">
+    <div className="min-h-screen bg-[#050507] text-slate-200 font-sans relative z-10">
 
       {/* ── TOP NAV ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#050507]/80 backdrop-blur-md border-b border-white/5">
