@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import DebugPage from './pages/DebugPage';
+import OpenAICaseStudy from './pages/OpenAICaseStudy';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -27,6 +28,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/debug" element={<DebugPage />} />
+            <Route path="/openaisix" element={<OpenAICaseStudy />} />
             <Route path="/app" element={
               <ProtectedRoute>
                 <Dashboard />
