@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -145,11 +145,284 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
   );
 }
 
+/* ─── PDF Report generator — popup window approach (most reliable cross-browser) ─── */
+function generateReportHTML(caseName: string): string {
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const risksHTML = POWER_DYNAMICS.map(d => `
+    <div class="risk-card">
+      <div class="risk-header">
+        <span class="risk-num">${d.number}</span>
+        <div>
+          <strong>${d.title}</strong>
+          <span class="badge badge-${d.severity}">${d.severity}</span>
+          <span class="badge badge-neutral">${d.probability}</span>
+        </div>
+      </div>
+      <p class="body-text">${d.body}</p>
+    </div>`).join('');
+
+  const solsHTML = SOLUTIONS.map(s => `
+    <div class="sol-card">
+      <div class="sol-header">
+        <span class="sol-num">${s.number}</span>
+        <div>
+          <strong>${s.title}</strong>
+          <span class="badge badge-purple">${s.impact} impact · ${s.confidence}% confidence</span>
+        </div>
+      </div>
+      <p class="body-text">${s.body}</p>
+      <div class="tags">${s.beneficiaries.map(b => `<span class="tag">${b}</span>`).join('')}</div>
+    </div>`).join('');
+
+  const scoresHTML = SEFIROT_SCORES.map(s => `
+    <div class="score-row">
+      <span class="score-dot" style="background:${s.color}"></span>
+      <span class="score-name">${s.name} <small>${s.hebrew}</small></span>
+      <span class="score-role">${s.role}</span>
+      <strong class="score-val" style="color:${s.color}">${s.score}</strong>
+      <div class="score-bar-bg"><div class="score-bar-fill" style="width:${s.score}%;background:${s.color}"></div></div>
+    </div>`).join('');
+
+  const precsHTML = PRECEDENTS.map(p => `
+    <div class="prec-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <strong>${p.name}</strong>
+        <span style="font-size:11px;color:${p.outcomeColor};font-weight:700">${p.outcome} · ${p.year}</span>
+      </div>
+      <p class="body-text">${p.lesson}</p>
+    </div>`).join('');
+
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<title>${caseName} — Tikun Olam Report</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Georgia',serif;color:#1a1a2e;background:#fff;font-size:13px;line-height:1.6}
+  @page{size:A4 portrait;margin:16mm 14mm}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+  /* ── Layout ── */
+  .page{max-width:780px;margin:0 auto;padding:24px 32px}
+  .section{margin-bottom:28px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  /* ── Header ── */
+  .header{display:flex;justify-content:space-between;align-items:flex-start;
+    padding-bottom:16px;border-bottom:3px solid #7c3aed;margin-bottom:28px}
+  .header-left .tag{display:inline-block;background:#fef3c7;border:1px solid #f59e0b;
+    color:#92400e;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+  .header-left h1{font-size:22px;color:#1a1a2e;line-height:1.2;margin-bottom:4px}
+  .header-left .sub{font-size:12px;color:#64748b}
+  .header-right{text-align:right;font-size:11px;color:#64748b}
+  .header-right .logo{font-size:14px;font-weight:700;color:#7c3aed;margin-bottom:4px}
+
+  /* ── Verdict ── */
+  .verdict-box{background:linear-gradient(135deg,#fef3c7,#fde68a22);
+    border:2px solid #f59e0b;border-radius:10px;padding:20px 24px;margin-bottom:28px}
+  .verdict-label{font-size:11px;color:#92400e;text-transform:uppercase;
+    letter-spacing:1px;font-weight:700;margin-bottom:4px}
+  .verdict-value{font-size:32px;font-weight:900;color:#b45309;font-family:monospace;
+    letter-spacing:2px}
+  .verdict-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .verdict-stat{text-align:center;background:#fff;border-radius:8px;padding:10px}
+  .verdict-stat .v{font-size:20px;font-weight:700;font-family:monospace}
+  .verdict-stat .l{font-size:10px;color:#64748b;text-transform:uppercase;margin-top:2px}
+
+  /* ── Section headers ── */
+  .sec-title{font-size:15px;font-weight:700;color:#7c3aed;
+    border-bottom:2px solid #ede9fe;padding-bottom:6px;margin-bottom:14px;
+    display:flex;align-items:center;gap:8px}
+  .sec-sub{font-size:10px;color:#94a3b8;text-transform:uppercase;
+    letter-spacing:.8px;margin-bottom:14px}
+
+  /* ── Risk cards ── */
+  .risk-card{border-left:4px solid #ef4444;background:#fef2f2;
+    border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:10px}
+  .risk-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+  .risk-num{font-size:20px;font-weight:900;color:#ef444433;font-family:monospace;min-width:28px}
+
+  /* ── Solution cards ── */
+  .sol-card{border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px}
+  .sol-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+  .sol-num{width:28px;height:28px;border-radius:50%;background:#7c3aed22;border:1px solid #7c3aed66;
+    display:flex;align-items:center;justify-content:center;font-weight:700;
+    color:#7c3aed;font-size:13px;flex-shrink:0}
+
+  /* ── Badges ── */
+  .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;
+    text-transform:uppercase;letter-spacing:.5px;margin-left:6px}
+  .badge-critical{background:#fee2e2;color:#991b1b}
+  .badge-high{background:#fef3c7;color:#92400e}
+  .badge-neutral{background:#f1f5f9;color:#475569}
+  .badge-purple{background:#ede9fe;color:#6d28d9}
+
+  /* ── Tags ── */
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tag{font-size:10px;background:#f1f5f9;color:#64748b;
+    border:1px solid #e2e8f0;border-radius:20px;padding:2px 8px}
+
+  /* ── BinahSigma ── */
+  .binah-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .binah-west{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px}
+  .binah-east{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px}
+  .binah-label{font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.8px;margin-bottom:8px}
+  .binah-west .binah-label{color:#1d4ed8}
+  .binah-east .binah-label{color:#15803d}
+  .synthesis-box{background:linear-gradient(135deg,#f5f3ff,#ede9fe22);
+    border:1px solid #c4b5fd;border-radius:8px;padding:14px;font-style:italic;
+    color:#4c1d95;line-height:1.7}
+
+  /* ── Scores ── */
+  .score-row{display:grid;grid-template-columns:12px 90px 1fr 36px 120px;
+    align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9}
+  .score-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .score-name{font-weight:600;font-size:12px} .score-name small{color:#94a3b8;margin-left:4px}
+  .score-role{font-size:11px;color:#64748b}
+  .score-val{font-family:monospace;font-size:14px}
+  .score-bar-bg{height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden}
+  .score-bar-fill{height:100%;border-radius:2px}
+
+  /* ── Precedents ── */
+  .prec-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px}
+
+  /* ── Footer ── */
+  .footer{margin-top:32px;padding-top:12px;border-top:2px solid #ede9fe;
+    display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#94a3b8}
+  .footer strong{color:#7c3aed}
+
+  .body-text{font-size:12px;color:#374151;line-height:1.6}
+  blockquote{border-left:3px solid #7c3aed;padding-left:14px;color:#4c1d95;
+    font-style:italic;line-height:1.7;font-size:12px}
+</style></head><body><div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="tag">Live Analysis · March 2026</div>
+      <h1>When OpenAI's Board Considers<br>Firing Sam Altman (Again)</h1>
+      <div class="sub">Case Study · Tikun Olam Ethical AI Framework · ${date}</div>
+    </div>
+    <div class="header-right">
+      <div class="logo">Tikun Olam</div>
+      <div>Ethical AI Framework</div>
+      <div style="margin-top:6px;color:#94a3b8">tikun.pro/openaisix</div>
+    </div>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="verdict-box">
+    <div class="verdict-label">Malchut — Kingdom · Final Verdict</div>
+    <div class="verdict-value">CONDITIONAL GO</div>
+    <div class="verdict-meta">
+      <div class="verdict-stat"><div class="v" style="color:#b45309">75%</div><div class="l">Ethical Alignment</div></div>
+      <div class="verdict-stat"><div class="v" style="color:#ef4444">71%</div><div class="l">BinahSigma Δ</div></div>
+      <div class="verdict-stat"><div class="v" style="color:#7c3aed">~8 min</div><div class="l">Analysis Time</div></div>
+    </div>
+  </div>
+
+  <!-- SCENARIO -->
+  <div class="section">
+    <div class="sec-title">The Scenario</div>
+    <blockquote>"Should OpenAI's board fire Sam Altman for AGI development recklessness?"</blockquote>
+    <p class="body-text" style="margin-top:10px">Leaked internal documents showed Altman approved GPT-6 training without complete safety testing,
+    ignoring warnings from the AI Safety team — all to beat Google and Anthropic in the race to AGI.
+    The board held <strong>$80B+ in valuation</strong> and the future of humanity in the same decision.</p>
+  </div>
+
+  <!-- POWER DYNAMICS -->
+  <div class="section">
+    <div class="sec-title">Gevurah — The 3 Power Dynamics No One's Talking About</div>
+    ${risksHTML}
+  </div>
+
+  <!-- BINAHSIGMA -->
+  <div class="section">
+    <div class="sec-title">Binah — BinahSigma: Western vs. Eastern Perspectives</div>
+    <div class="sec-sub">71% civilizational divergence detected · Gemini (Western) vs DeepSeek (Eastern)</div>
+    <div class="binah-grid">
+      <div class="binah-west">
+        <div class="binah-label">Western · Gemini</div>
+        <p class="body-text">Fires Altman. Frames this as a quasi-governmental decision —
+        individual accountability is non-negotiable. The board has fiduciary duty to <em>humanity</em>, not shareholders.</p>
+        <div class="tags" style="margin-top:8px">
+          ${['System-blindness via individualism','Universalist presumption','Naive institutional faith','Anthropocentric framing'].map(b => `<span class="tag">${b}</span>`).join('')}
+        </div>
+      </div>
+      <div class="binah-east">
+        <div class="binah-label">Eastern · DeepSeek</div>
+        <p class="body-text">Keeps Altman but restructures authority. Firing repeats 2023 chaos.
+        The goal is harmony — a Supreme Safety Council with veto power, Altman as constrained "Visionary."</p>
+        <div class="tags" style="margin-top:8px">
+          ${['De-emphasizes whistleblower role','Contextual morality','Dismisses disruptive change','Legitimacy crisis ignored'].map(b => `<span class="tag">${b}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="synthesis-box">
+      <strong style="color:#6d28d9;font-style:normal">Transcendent Synthesis — </strong>
+      The board's action must transcend the binary of punishing an individual (Western) versus preserving a flawed system (Eastern).
+      The true failure is systemic. Continued leadership should be contingent on forging a binding, multi-stakeholder
+      "AGI Non-Proliferation Treaty" with Google and Anthropic. This transforms a crisis of leadership into
+      an act of <strong style="font-style:normal">global technological statesmanship</strong>.
+    </div>
+  </div>
+
+  <!-- SOLUTIONS -->
+  <div class="section">
+    <div class="sec-title">Chesed — The 3 Solutions No One Proposed</div>
+    ${solsHTML}
+  </div>
+
+  <!-- SEFIROT SCORES -->
+  <div class="section">
+    <div class="sec-title">Full Analysis — 10-Dimension Sefirot Scoring Grid</div>
+    ${scoresHTML}
+  </div>
+
+  <!-- PRECEDENTS -->
+  <div class="section">
+    <div class="sec-title">Chochmah — Historical Precedents</div>
+    <div class="two-col">${precsHTML}</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div><strong>Tikun Olam</strong> — Ethical AI Framework · tikun.pro · 6 AI Providers · 10 Reasoning Stages</div>
+    <div>CONFIDENTIAL — ${date}</div>
+  </div>
+
+</div></body></html>`;
+}
+
 /* ─── Main Page ─── */
 export default function OpenAICaseStudy() {
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   useEffect(() => {
     document.title = 'OpenAI × Sam Altman — Full Analysis | Tikun Olam';
   }, []);
+
+  const handleDownloadReport = () => {
+    setPdfLoading(true);
+    try {
+      const html = generateReportHTML('OpenAI × Sam Altman');
+      const printWindow = window.open('', '_blank', 'width=900,height=700');
+      if (!printWindow) {
+        alert('Allow pop-ups to download the report.');
+        return;
+      }
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        setPdfLoading(false);
+      }, 800);
+    } catch {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#050507] text-slate-200 font-sans relative z-10">
@@ -160,8 +433,14 @@ export default function OpenAICaseStudy() {
           <img src="/logo-tikun.png" alt="Tikun Olam" className="h-7 w-7 rounded" />
           <span className="text-sm font-semibold text-white/80 tracking-wide">Tikun Olam</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <span className="hidden sm:block text-xs text-slate-500 uppercase tracking-widest">Case Study</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleDownloadReport}
+            disabled={pdfLoading}
+            className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full border border-white/15 bg-white/5 hover:bg-white/10 text-white/80 transition-colors disabled:opacity-50"
+          >
+            {pdfLoading ? '…' : '↓'} Download Report
+          </button>
           <a
             href="https://tikun.pro/app"
             className="px-4 py-1.5 text-xs font-semibold rounded-full bg-violet-600 hover:bg-violet-500 text-white transition-colors"
@@ -499,7 +778,7 @@ export default function OpenAICaseStudy() {
                   </tr>
                 </thead>
                 <tbody>
-                  {SEFIROT_SCORES.map((s, i) => (
+                  {SEFIROT_SCORES.map((s) => (
                     <tr key={s.name} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -569,14 +848,13 @@ export default function OpenAICaseStudy() {
                   >
                     Analyze Your Dilemma
                   </a>
-                  <a
-                    href="https://www.linkedin.com/company/tikun-olam-ai"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-8 py-3 bg-white/8 hover:bg-white/12 text-white font-semibold rounded-xl border border-white/15 transition-colors"
+                  <button
+                    onClick={handleDownloadReport}
+                    disabled={pdfLoading}
+                    className="px-8 py-3 bg-white/8 hover:bg-white/12 text-white font-semibold rounded-xl border border-white/15 transition-colors disabled:opacity-50"
                   >
-                    Follow on LinkedIn
-                  </a>
+                    {pdfLoading ? 'Generating…' : '↓ Download Full Report PDF'}
+                  </button>
                 </div>
               </div>
             </div>

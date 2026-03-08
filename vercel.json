@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://tikun.pro/$1",
+      "permanent": true
+    }
+  ]
+}
