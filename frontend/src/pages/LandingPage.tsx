@@ -65,8 +65,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-secondary to-primary flex items-center justify-center font-bold text-white text-base">ת</div>
-            <span className="font-bold tracking-tight text-lg"><span className="text-primary">TOF</span></span>
-            <span className="hidden sm:block text-xs text-slate-500 font-normal">Ethical AI Framework</span>
+            <span className="font-bold tracking-tight text-lg">Tikun<span className="text-primary">Olam</span></span>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -135,7 +134,7 @@ const LandingPage = () => {
             transition={{ delay: 0.35 }}
             className="text-slate-500 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed"
           >
-            TOF routes every ethical dilemma through a 10-stage Kabbalistic reasoning pipeline,
+            TikunOlam routes every ethical dilemma through a 10-stage Kabbalistic reasoning pipeline,
             each stage powered by a different AI provider. No consensus bias. No single model deciding your future.
           </motion.p>
 
@@ -355,7 +354,7 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="py-8 text-center text-slate-600 text-sm border-t border-white/5">
-        <p>© 2026 TOF — Ethical AI Framework · <span className="font-mono">תיקון עולם</span></p>
+        <p>© 2026 Tikun Olam Framework · <span className="font-mono">תיקון עולם</span> — Repairing the world</p>
       </footer>
     </div>
   );
