@@ -115,14 +115,14 @@ const PARADOXES = [
   },
 ];
 
-/* ─── Section wrapper with fade-in ─── */
+/* ─── Section wrapper — content always visible, subtle y-slide on enter ─── */
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.55, ease: 'easeOut' }}
+      initial={{ y: 16 }}
+      whileInView={{ y: 0 }}
+      viewport={{ once: true, amount: 0.05 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={className}
     >
       {children}
@@ -180,46 +180,26 @@ export default function OpenAICaseStudy() {
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-widest mb-8"
-          >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-widest mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
             Live Analysis · March 2026
-          </motion.div>
+          </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6"
-          >
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
             When OpenAI's Board Considers
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-purple-300 to-blue-400">
               Firing Sam Altman (Again)
             </span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
-          >
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             The AI analysis that revealed what humans miss: power dynamics, civilizational blind spots,
             and the 3 solutions no one proposed. Full 10-dimension ethical reasoning. 8 minutes.
-          </motion.p>
+          </p>
 
           {/* Key stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto"
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
             {[
               { label: 'Verdict', value: 'CONDITIONAL GO', color: '#f59e0b' },
               { label: 'BinahSigma Delta', value: '71%', color: '#e63946' },
@@ -231,7 +211,7 @@ export default function OpenAICaseStudy() {
                 <p className="text-lg font-bold font-mono" style={{ color: s.color }}>{s.value}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
