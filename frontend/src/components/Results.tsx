@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Shield,
   Lightbulb,
-  Download,
   Share2,
   Printer,
   Clock,
@@ -15,9 +14,15 @@ import {
   FileText,
   Loader2,
   BarChart2,
+  Lock,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import ProviderBadge from './ProviderBadge';
 import BinahSigmaView from './BinahSigmaView';
+
+// ─── Admin detection ────────────────────────────────────────────────────────
+// Set VITE_ADMIN_EMAIL in your .env.local to enable admin view
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
 import { EthicalRiskGauge } from './EthicalRiskGauge';
 import { SefirotRadarChart } from './SefirotRadarChart';
 import { IndustryBenchmarkBar } from './IndustryBenchmarkBar';
@@ -33,20 +38,17 @@ interface ResultsProps {
 }
 
 function Results({ results, onReset }: ResultsProps) {
-  console.log('🎨 Results component MOUNTING with data:', results);
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.email && ADMIN_EMAIL && user.email === ADMIN_EMAIL);
 
   const [activeTab, setActiveTab] = useState<'summary' | 'sefirot' | 'binah' | 'executive'>('summary');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('technology');
   const [pdfLoading, setPdfLoading] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  console.log('✅ Results component state initialized');
-
   // Safely destructure with fallbacks
   const sefirot_results = results?.sefirot_results || {};
   const metadata = results?.metadata || {};
-
-  console.log('📋 Extracted data:', { sefirot_results, metadata });
 
   // CRITICAL FIX: Generate all required fields from sefirot_results
   // Backend only provides: sefirot_results, metadata, scenario
@@ -195,28 +197,50 @@ function Results({ results, onReset }: ResultsProps) {
     }
   };
 
+  // Sanitized summary export — no pipeline internals
   const handleShare = () => {
-    const shareData = {
+    const sefirotScores: Record<string, number | null> = {};
+    Object.entries(sefirot_results).forEach(([name, data]: [string, any]) => {
+      sefirotScores[name] = data?.alignment_percentage ?? data?.score ?? null;
+    });
+    const sanitized = {
       case_name,
-      summary,
-      timestamp: metadata?.timestamp || new Date().toISOString()
+      final_decision: summary.final_decision,
+      overall_alignment: summary.overall_alignment,
+      key_risks: summary.key_risks,
+      key_opportunities: summary.key_opportunities,
+      sefirot_scores: sefirotScores,
+      analysis_date: metadata?.timestamp
+        ? new Date(metadata.timestamp).toLocaleDateString()
+        : new Date().toLocaleDateString(),
+      framework: 'Tikun Olam — Ethical AI Framework',
+      providers: '6 AI Providers',
     };
-    const blob = new Blob([JSON.stringify(shareData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(sanitized, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tikun-analysis-${Date.now()}.json`;
+    a.download = `tikun-summary-${case_name.replace(/\s/g, '_').slice(0, 30)}.json`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleDownload = () => {
+  // Admin-only: full pipeline export
+  const handleAdminDownload = () => {
+    if (!isAdmin) return;
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tikun-full-results-${Date.now()}.json`;
+    a.download = `tikun-FULL-${case_name.replace(/\s/g, '_').slice(0, 30)}-${Date.now()}.json`;
     a.click();
+    URL.revokeObjectURL(url);
   };
+
+  // Rounded duration for public display
+  const durationDisplay = metadata?.total_duration_seconds
+    ? `~${Math.ceil(metadata.total_duration_seconds / 60)} min`
+    : null;
 
   return (
     <motion.div
@@ -234,29 +258,37 @@ function Results({ results, onReset }: ResultsProps) {
             </p>
             {/* Duration + provider count */}
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              {metadata?.total_duration_seconds && (
+              {durationDisplay && (
                 <span className="flex items-center gap-1.5 text-xs text-slate-500">
                   <Clock size={11} />
-                  {Math.floor(metadata.total_duration_seconds / 60)}m {metadata.total_duration_seconds % 60}s
+                  {durationDisplay}
                 </span>
               )}
-              {metadata?.models_used && (
-                <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <Cpu size={11} />
-                  {new Set(Object.values(metadata.models_used)).size} providers
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Cpu size={11} />
+                6 AI Providers
+              </span>
+              {isAdmin && (
+                <span className="flex items-center gap-1 text-xs text-violet-400 bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 rounded-full">
+                  <Lock size={10} /> Admin
                 </span>
               )}
             </div>
-            {/* Provider attribution row */}
+            {/* Provider attribution — admin sees exact models, users see provider names */}
             {metadata?.models_used && (
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {Array.from(new Set(Object.values(metadata.models_used as Record<string, string>))).map((model) => {
-                  const providerKey = PROVIDER_LABELS[model as string] as ProviderKey | undefined;
-                  if (!providerKey) return null;
-                  return (
-                    <ProviderBadge key={model} provider={providerKey} label={model as string} size="sm" />
-                  );
-                })}
+                {isAdmin
+                  ? Array.from(new Set(Object.values(metadata.models_used as Record<string, string>))).map((model) => {
+                      const providerKey = PROVIDER_LABELS[model as string] as ProviderKey | undefined;
+                      if (!providerKey) return null;
+                      return <ProviderBadge key={model} provider={providerKey} label={model as string} size="sm" />;
+                    })
+                  : Array.from(new Set(Object.values(metadata.models_used as Record<string, string>))).map((model) => {
+                      const providerKey = PROVIDER_LABELS[model as string] as ProviderKey | undefined;
+                      if (!providerKey) return null;
+                      return <ProviderBadge key={model} provider={providerKey} label={providerKey} size="sm" />;
+                    })
+                }
               </div>
             )}
           </div>
@@ -292,17 +324,20 @@ function Results({ results, onReset }: ResultsProps) {
             <button
               onClick={handleShare}
               className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-              title="Share Summary"
+              title="Export Summary JSON"
             >
               <Share2 className="w-5 h-5 text-slate-300" />
             </button>
-            <button
-              onClick={handleDownload}
-              className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-              title="Download Full Results JSON"
-            >
-              <Download className="w-5 h-5 text-slate-300" />
-            </button>
+            {/* Admin-only: full pipeline export */}
+            {isAdmin && (
+              <button
+                onClick={handleAdminDownload}
+                className="p-2 bg-violet-900/40 hover:bg-violet-800/60 border border-violet-500/30 rounded-lg transition-colors"
+                title="[Admin] Download Full Pipeline JSON"
+              >
+                <Lock className="w-4 h-4 text-violet-400" />
+              </button>
+            )}
             <button
               onClick={onReset}
               className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-medium transition-all"
@@ -468,19 +503,44 @@ function Results({ results, onReset }: ResultsProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-4"
+            className="space-y-3"
           >
-            {Object.entries(sefirot_results || {}).map(([name, data]: [string, any]) => (
-              <div
-                key={name}
-                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6"
-              >
-                <h3 className="text-xl font-bold text-white mb-4 capitalize">{name}</h3>
-                <pre className="text-sm text-slate-300 overflow-x-auto bg-slate-900/50 rounded-lg p-4">
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </div>
-            ))}
+            <div className="grid sm:grid-cols-2 gap-3">
+              {Object.entries(sefirot_results || {}).map(([name, data]: [string, any]) => {
+                const score = data?.alignment_percentage ?? data?.score ?? null;
+                const decision = data?.decision || null;
+                const scoreColor = score == null ? '#64748b' : score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444';
+                return (
+                  <div key={name} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-white capitalize">{name}</h3>
+                      {score != null && (
+                        <span className="text-lg font-bold font-mono" style={{ color: scoreColor }}>{score}</span>
+                      )}
+                    </div>
+                    {decision && (
+                      <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded">{decision}</span>
+                    )}
+                    {score != null && (
+                      <div className="mt-2 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: scoreColor }} />
+                      </div>
+                    )}
+                    {/* Admin: raw data */}
+                    {isAdmin && (
+                      <details className="mt-3">
+                        <summary className="text-xs text-violet-400 cursor-pointer flex items-center gap-1">
+                          <Lock size={10} /> Raw pipeline data
+                        </summary>
+                        <pre className="mt-2 text-xs text-slate-400 overflow-x-auto bg-slate-900/50 rounded p-3 max-h-48">
+                          {JSON.stringify(data, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
 
