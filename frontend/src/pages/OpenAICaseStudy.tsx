@@ -148,7 +148,7 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
 /* ─── Main Page ─── */
 export default function OpenAICaseStudy() {
   useEffect(() => {
-    document.title = 'OpenAI × Sam Altman — Full Analysis | Tikun Olam';
+    document.title = 'OpenAI × Sam Altman — Full Analysis | TOF Ethical AI Framework';
   }, []);
 
   return (
@@ -157,8 +157,8 @@ export default function OpenAICaseStudy() {
       {/* ── TOP NAV ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#050507]/80 backdrop-blur-md border-b border-white/5">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo-tikun.png" alt="Tikun Olam" className="h-7 w-7 rounded" />
-          <span className="text-sm font-semibold text-white/80 tracking-wide">Tikun Olam</span>
+          <img src="/logo-tikun.png" alt="TOF" className="h-7 w-7 rounded" />
+          <span className="text-sm font-semibold text-white/80 tracking-wide"><span className="text-violet-400">TOF</span> — Ethical AI Framework</span>
         </Link>
         <div className="flex items-center gap-4">
           <span className="hidden sm:block text-xs text-slate-500 uppercase tracking-widest">Case Study</span>
@@ -574,7 +574,7 @@ export default function OpenAICaseStudy() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-violet-600/10 rounded-full blur-3xl" />
               </div>
               <div className="relative">
-                <img src="/logo-tikun.png" alt="Tikun Olam" className="w-14 h-14 mx-auto mb-6 rounded-xl" />
+                <img src="/logo-tikun.png" alt="TOF" className="w-14 h-14 mx-auto mb-6 rounded-xl" />
                 <h2 className="text-3xl font-bold text-white mb-4">
                   Ethical AI Frameworks Are No Longer Optional
                 </h2>
@@ -608,8 +608,8 @@ export default function OpenAICaseStudy() {
       <footer className="border-t border-white/5 px-6 py-8">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <img src="/logo-tikun.png" alt="Tikun Olam" className="h-5 w-5 rounded opacity-60" />
-            <span>Tikun Olam — Ethical AI Reasoning Framework · March 2026</span>
+            <img src="/logo-tikun.png" alt="TOF" className="h-5 w-5 rounded opacity-60" />
+            <span>TOF — Ethical AI Framework · tikun.pro · March 2026</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-slate-400 transition-colors">Home</Link>
