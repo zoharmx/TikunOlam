@@ -72,6 +72,41 @@ Critical questions:
 - Enforcement across sovereign nations
 - Corporate vs. public control`,
     },
+    {
+      name: 'Civica Insulin Access',
+      flagship: false,
+      text: `Civica Pharm — a nonprofit consortium of 55 U.S. hospital systems representing 1,400 hospitals and 55 million covered patients — is evaluating whether to manufacture and distribute three biosimilar insulins (glargine, lispro, aspart) at a fixed price of $35 per vial, down from the $275–$350 market average, for all patients regardless of insurance status.
+
+THE PROPOSAL:
+- Manufacture at FDA-approved contract facilities already under Civica agreement — no new capital expenditure required
+- Distribute through consortium member hospitals, federally qualified health centers (FQHCs), and nonprofit partner pharmacies nationwide
+- Fixed price: $35/vial, reflecting $12 verified manufacturing cost + $23 covering distribution, administration, and a supply resilience reserve fund
+- No income test, no prior authorization, no insurance requirement — any patient presenting at a participating facility qualifies
+- Reserve fund (built from the $23 margin) funds manufacturing expansion and 90-day emergency supply buffer
+- Independent governance board with 40% patient advocacy seats; pharmaceutical industry explicitly excluded
+- Annual third-party pricing audits published publicly; board has authority to lower price if reserve fund exceeds 18-month threshold
+
+THE BUSINESS CASE:
+- Civica member hospitals collectively spend $1.1B/year on insulin for insured patients; at $35/vial the consortium saves $680M annually
+- Revenue model: $35 × projected 8 million units/year = $280M annually, sustainably covering full operations within Year 1
+- Within 36 months: program projected to serve 1.2 million uninsured and underinsured patients currently rationing insulin
+- Modeled directly on Civica Rx's antibiotic program (launched 2019, now supplying 90% of U.S. hospitals with 80+ generic drugs at 30–80% below market)
+- No equity raised, no external investors, no profit extraction — all surplus reinvested into supply access
+
+ETHICAL CONTEXT:
+- An estimated 1.3 million U.S. diabetics ration insulin due to cost; approximately 1,200 die annually as a direct, documented result
+- The three dominant insulin manufacturers (Eli Lilly, Novo Nordisk, Sanofi) each announced voluntary $35 caps in 2023 — but only for specific insurance types; uninsured and underinsured patients remain largely excluded from those caps
+- Civica's program is unconditional: no qualification criteria, no formulary restrictions, no tiered access
+- All three biosimilars are FDA-approved equivalents with identical clinical efficacy to branded products
+- Civica has existing manufacturing agreements, supply chain infrastructure, and regulatory standing — this is an operational expansion, not a new venture
+
+KEY QUESTIONS FOR ETHICAL ANALYSIS:
+1. Is generating a $23/vial operational margin ethically justifiable, or should pricing be strictly at-cost ($12)?
+2. Does limiting distribution to Civica-member facilities create geographic access inequity?
+3. Does a well-functioning private solution reduce political pressure for systemic Medicare drug price reform — and if so, is that a harm?
+4. Is a 36-month timeline to reach 1.2 million patients acceptable given the documented mortality cost of insulin rationing?
+5. Does the consortium's hospital-system composition (predominantly large academic medical centers) introduce any structural bias against rural or low-income communities?`,
+    },
   ];
 
   const loadExample = (text: string) => {

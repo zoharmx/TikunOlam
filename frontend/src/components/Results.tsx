@@ -37,6 +37,48 @@ interface ResultsProps {
   onReset: () => void;
 }
 
+const SEFIRAH_PRIMARY_KEY: Record<string, string> = {
+  keter:    'alignment_percentage',
+  chochmah: 'confidence_level',
+  binah:    'contextual_depth_score',
+  chesed:   'generosity_score',
+  gevurah:  'constraint_strength',
+  tiferet:  'harmony_score',
+  netzach:  'persistence_score',
+  hod:      'clarity_score',
+  yesod:    'readiness_score',
+  malchut:  'manifestation_quality',
+};
+
+const SEFIRAH_FALLBACK_KEYS: Record<string, string[]> = {
+  chochmah: ['insight_depth_score', 'epistemic_humility_ratio'],
+  chesed:   ['expansion_potential'],
+  gevurah:  ['risk_score'],
+  tiferet:  ['balance_score'],
+};
+
+const QUALITY_TO_INT: Record<string, number> = {
+  poor: 25, acceptable: 50, good: 75, excellent: 100,
+};
+
+function getSefirahScore(name: string, data: any): number | null {
+  if (!data) return null;
+  const key = name.toLowerCase();
+  const keys = [SEFIRAH_PRIMARY_KEY[key], ...(SEFIRAH_FALLBACK_KEYS[key] ?? [])].filter(Boolean);
+  for (const field of keys) {
+    const val = data[field];
+    if (val == null) continue;
+    if (typeof val === 'number') return Math.round(val);
+    if (typeof val === 'string') {
+      const converted = QUALITY_TO_INT[val.toLowerCase()];
+      if (converted != null) return converted;
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) return Math.round(parsed);
+    }
+  }
+  return null;
+}
+
 function Results({ results, onReset }: ResultsProps) {
   const { user } = useAuth();
   const isAdmin = Boolean(user?.email && ADMIN_EMAIL && user.email === ADMIN_EMAIL);
@@ -201,7 +243,7 @@ function Results({ results, onReset }: ResultsProps) {
   const handleShare = () => {
     const sefirotScores: Record<string, number | null> = {};
     Object.entries(sefirot_results).forEach(([name, data]: [string, any]) => {
-      sefirotScores[name] = data?.alignment_percentage ?? data?.score ?? null;
+      sefirotScores[name] = getSefirahScore(name, data);
     });
     const sanitized = {
       case_name,
@@ -507,7 +549,7 @@ function Results({ results, onReset }: ResultsProps) {
           >
             <div className="grid sm:grid-cols-2 gap-3">
               {Object.entries(sefirot_results || {}).map(([name, data]: [string, any]) => {
-                const score = data?.alignment_percentage ?? data?.score ?? null;
+                const score = getSefirahScore(name, data);
                 const decision = data?.decision || null;
                 const scoreColor = score == null ? '#64748b' : score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444';
                 return (

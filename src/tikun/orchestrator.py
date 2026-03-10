@@ -403,6 +403,63 @@ class TikunOrchestrator:
             )
             raise
 
+    # Primary metric key for each Sefirah (used by get_summary)
+    _SEFIRAH_PRIMARY_KEY: Dict[str, str] = {
+        "keter":     "alignment_percentage",
+        "chochmah":  "confidence_level",
+        "binah":     "contextual_depth_score",
+        "chesed":    "generosity_score",
+        "gevurah":   "constraint_strength",
+        "tiferet":   "harmony_score",
+        "netzach":   "persistence_score",
+        "hod":       "clarity_score",
+        "yesod":     "readiness_score",
+        "malchut":   "manifestation_quality",
+    }
+
+    # Fallback keys tried in order if the primary key is absent or non-numeric
+    _SEFIRAH_FALLBACK_KEYS: Dict[str, list] = {
+        "chochmah": ["insight_depth_score", "epistemic_humility_ratio"],
+        "chesed":   ["expansion_potential"],
+        "gevurah":  ["risk_score"],
+        "tiferet":  ["balance_score"],
+        "yesod":    ["foundation_strength_score"],
+    }
+
+    # Ordinal → numeric conversion for string quality/quality fields
+    _QUALITY_TO_INT: Dict[str, int] = {
+        "poor": 25, "acceptable": 50, "good": 75, "excellent": 100,
+        "low": 25, "medium": 50, "high": 75, "critical": 15,
+        "weak": 25, "moderate": 50, "strong": 75, "robust": 95,
+    }
+
+    def _extract_sefirah_score(self, name: str, data: Dict[str, Any]) -> Optional[int]:
+        """Return the primary numeric score for a single Sefirah result dict."""
+        if not data:
+            return None
+
+        primary_key = self._SEFIRAH_PRIMARY_KEY.get(name)
+        fallbacks   = self._SEFIRAH_FALLBACK_KEYS.get(name, [])
+
+        for key in ([primary_key] if primary_key else []) + fallbacks:
+            value = data.get(key)
+            if value is None:
+                continue
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str):
+                # Try ordinal conversion first
+                converted = self._QUALITY_TO_INT.get(value.lower())
+                if converted is not None:
+                    return converted
+                # Try parsing as numeric string
+                try:
+                    return int(float(value))
+                except (ValueError, TypeError):
+                    pass
+
+        return None
+
     def get_summary(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate structured summary of results for API response.
@@ -423,6 +480,12 @@ class TikunOrchestrator:
         keter = sefirot.get('keter', {})
         overall_alignment = float(keter.get('alignment_percentage', 0))
 
+        # Build per-sefirah score map (all 10 sefirot)
+        sefirot_scores: Dict[str, Optional[int]] = {}
+        for name in self._SEFIRAH_PRIMARY_KEY:
+            data = sefirot.get(name, {})
+            sefirot_scores[name] = self._extract_sefirah_score(name, data)
+
         # Extract key risks from Gevurah (top 5)
         gevurah = sefirot.get('gevurah', {})
         risks = gevurah.get('risks', [])
@@ -435,7 +498,6 @@ class TikunOrchestrator:
             elif isinstance(risk, str):
                 key_risks.append(risk)
 
-        # If no risks extracted, add a generic message
         if not key_risks:
             key_risks = ["No significant risks identified"]
 
@@ -451,7 +513,6 @@ class TikunOrchestrator:
             elif isinstance(opp, str):
                 key_opportunities.append(opp)
 
-        # If no opportunities extracted, add a generic message
         if not key_opportunities:
             key_opportunities = ["Analysis complete. See detailed results."]
 
@@ -464,6 +525,7 @@ class TikunOrchestrator:
         return {
             "final_decision": final_decision,
             "overall_alignment": overall_alignment,
+            "sefirot_scores": sefirot_scores,
             "key_risks": key_risks,
             "key_opportunities": key_opportunities,
             "recommendation": recommendation
