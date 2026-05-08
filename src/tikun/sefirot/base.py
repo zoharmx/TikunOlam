@@ -166,6 +166,36 @@ class BaseSefirah(ABC):
         """
         pass
 
+    def _fallback_to_mistral_openai(self, prompt: str, temperature: float = 0.7) -> str:
+        """Fall back to Mistral then OpenAI when Gemini is unavailable."""
+        if self.mistral_available and self.mistral_client:
+            try:
+                self.logger.info("Gemini fallback → Mistral")
+                response = self.mistral_client.chat.completions.create(
+                    model="mistral-large-latest",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=8192,
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                self.logger.warning(f"Mistral fallback failed: {e}")
+
+        if self.openai_available and self.openai_client:
+            try:
+                self.logger.info("Gemini fallback → OpenAI")
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=8192,
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                self.logger.warning(f"OpenAI fallback failed: {e}")
+
+        raise RuntimeError("All providers failed: Gemini (400/invalid key), Mistral, OpenAI")
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -180,6 +210,7 @@ class BaseSefirah(ABC):
     ) -> str:
         """
         Call Gemini via OpenAI-compatible endpoint with retry logic.
+        On 400 (invalid API key) falls back immediately to Mistral → OpenAI.
 
         Args:
             prompt: Prompt text
@@ -202,6 +233,18 @@ class BaseSefirah(ABC):
             result = response.choices[0].message.content
             self.logger.debug(f"Gemini response received", length=len(result))
             return result
+
+        except OpenAIStatusError as e:
+            if e.status_code == 400:
+                # Permanent failure (invalid API key) — bypass tenacity retry, go to fallback
+                self.logger.warning(
+                    f"Gemini 400 (API key invalid) — routing to Mistral→OpenAI fallback",
+                    model=model
+                )
+                return self._fallback_to_mistral_openai(prompt, temperature)
+            # Other HTTP errors (429, 5xx) → let tenacity retry
+            self.logger.error(f"Gemini HTTP {e.status_code} error", model=model, error=str(e))
+            raise
 
         except Exception as e:
             self.logger.error(
@@ -403,11 +446,19 @@ class BaseSefirah(ABC):
 
         except Exception as e:
             self.logger.error(
-                f"Mistral API call failed, falling back to VertexAI",
+                f"Mistral API call failed, falling back to OpenAI",
                 model=model,
                 error=str(e)
             )
-            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
+            if self.openai_available and self.openai_client:
+                resp = self.openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=8192,
+                )
+                return resp.choices[0].message.content
+            raise
 
     @retry(
         stop=stop_after_attempt(3),
@@ -444,11 +495,19 @@ class BaseSefirah(ABC):
 
         except Exception as e:
             self.logger.error(
-                f"OpenAI API call failed, falling back to VertexAI",
+                f"OpenAI API call failed, falling back to Mistral",
                 model=model,
                 error=str(e)
             )
-            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
+            if self.mistral_available and self.mistral_client:
+                resp = self.mistral_client.chat.completions.create(
+                    model="mistral-large-latest",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=8192,
+                )
+                return resp.choices[0].message.content
+            raise
 
     def safe_process(
         self,
