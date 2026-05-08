@@ -1,15 +1,16 @@
 """
-Compatibility wrapper for backward compatibility.
-
-This module exists to maintain compatibility with existing code
-that imports from tikun_orchestrator.
-
-Prefer importing from tikun package directly:
-    from tikun import TikunOrchestrator
+Compatibility wrapper — adds src/ to sys.path so `tikun` resolves
+to src/tikun without requiring `pip install -e .`.
 """
 
-# Import from main package
-from src.tikun.orchestrator import TikunOrchestrator
-from src.tikun.config import TikunConfig
+import sys
+from pathlib import Path
+
+_SRC = str(Path(__file__).parent / "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
+
+from tikun.orchestrator import TikunOrchestrator  # noqa: E402
+from tikun.config import TikunConfig              # noqa: E402
 
 __all__ = ['TikunOrchestrator', 'TikunConfig']

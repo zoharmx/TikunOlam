@@ -62,9 +62,8 @@ class TikunConfig(BaseSettings):
     # ============================================================================
 
     gcp_project_id: str = Field(
-        ...,
-        description="Google Cloud Project ID for Vertex AI",
-        min_length=1
+        default="placeholder",
+        description="Google Cloud Project ID (not required when using Gemini API key directly)"
     )
 
     gcp_location: str = Field(
@@ -175,11 +174,12 @@ class TikunConfig(BaseSettings):
     )
     @classmethod
     def strip_api_keys(cls, v: Optional[str]) -> Optional[str]:
-        """Remove whitespace and newlines from API keys."""
+        """Remove all whitespace (including internal) from API keys."""
         if v is None:
             return None
         if isinstance(v, str):
-            return v.strip()
+            import re
+            return re.sub(r'\s+', '', v)
         return v
 
     def get_cors_origins_list(self) -> List[str]:

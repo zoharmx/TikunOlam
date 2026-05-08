@@ -176,8 +176,10 @@ Emphasize quality of insight over quantity. Acknowledge what you don't know.
                 "raw_wisdom": response
             }
 
-            chochmah_result = ChochmahResult(**result_data)
-            return chochmah_result.model_dump()
+            result = ChochmahResult(**result_data).model_dump()
+            # Compatibility alias for test scripts
+            result["insights"] = result.get("hidden_insights", [])
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Chochmah response", error=str(e), exc_info=True)

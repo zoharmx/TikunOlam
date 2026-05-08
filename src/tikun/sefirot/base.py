@@ -16,11 +16,7 @@ from tenacity import (
     RetryError
 )
 
-# AI API clients
-import vertexai
-from vertexai.generative_models import GenerativeModel, GenerationConfig
-# TEMPORARY: Comment out Anthropic to test if it causes overhead
-# from anthropic import Anthropic
+# AI API clients — Gemini via OpenAI-compatible endpoint (no google-auth needed)
 from openai import OpenAI, APIStatusError as OpenAIStatusError
 
 from tikun.config import TikunConfig
@@ -69,28 +65,32 @@ class BaseSefirah(ABC):
         self._init_ai_clients()
 
     def _init_ai_clients(self) -> None:
-        """Initialize AI API clients (multi-provider, Feb 2026 distribution)."""
+        """Initialize AI API clients (multi-provider)."""
         from tikun.ai_clients import (
-            init_vertex_ai,
+            get_gemini_client,
             get_deepseek_client,
             get_grok_client,
             get_mistral_client,
             get_openai_client,
         )
+        # Gemini client is used inside call_gemini() directly
 
-        # VertexAI — always initialized (primary fallback for all Sefirot)
+        # Gemini — primary fallback for all Sefirot (OpenAI-compatible endpoint)
         try:
-            init_vertex_ai(self.config)
-            self.logger.debug("Vertex AI client ready")
+            self.gemini_client = get_gemini_client(self.config)
+            self.gemini_available = True
+            self.logger.debug("Gemini client ready (OpenAI-compat)")
         except Exception as e:
-            self.logger.error("Failed to initialize Vertex AI", error=str(e))
+            self.gemini_client = None
+            self.gemini_available = False
+            self.logger.error("Failed to initialize Gemini client", error=str(e))
             raise
 
-        # Claude — disabled (no key)
+        # Claude — disabled
         self.claude_client = None
         self.claude_available = False
 
-        # DeepSeek — Binah East, Netzach
+        # DeepSeek — Binah East
         try:
             self.deepseek_client = get_deepseek_client(self.config)
             self.deepseek_available = True
@@ -108,7 +108,7 @@ class BaseSefirah(ABC):
         except Exception as e:
             self.grok_client = None
             self.grok_available = False
-            self.logger.warning("Grok unavailable, will fallback to VertexAI", error=str(e))
+            self.logger.warning("Grok unavailable, will fallback to Gemini", error=str(e))
 
         # Mistral — Chochmah, Yesod
         try:
@@ -118,7 +118,7 @@ class BaseSefirah(ABC):
         except Exception as e:
             self.mistral_client = None
             self.mistral_available = False
-            self.logger.warning("Mistral unavailable, will fallback to VertexAI", error=str(e))
+            self.logger.warning("Mistral unavailable, will fallback to Gemini", error=str(e))
 
         # OpenAI — Tiferet
         try:
@@ -128,7 +128,7 @@ class BaseSefirah(ABC):
         except Exception as e:
             self.openai_client = None
             self.openai_available = False
-            self.logger.warning("OpenAI unavailable, will fallback to VertexAI", error=str(e))
+            self.logger.warning("OpenAI unavailable, will fallback to Gemini", error=str(e))
 
     @abstractmethod
     def process(
@@ -175,48 +175,37 @@ class BaseSefirah(ABC):
     def call_gemini(
         self,
         prompt: str,
-        model: str = "gemini-2.5-pro",
+        model: str = "gemini-2.0-flash",
         temperature: float = 0.7
     ) -> str:
         """
-        Call Google Gemini via Vertex AI with retry logic.
+        Call Gemini via OpenAI-compatible endpoint with retry logic.
 
         Args:
             prompt: Prompt text
-            model: Model identifier (Vertex AI model name)
+            model: Gemini model name
             temperature: Temperature for generation
 
         Returns:
             Response text
         """
         try:
-            self.logger.debug(f"Calling Gemini via Vertex AI", model=model)
+            self.logger.debug(f"Calling Gemini (OpenAI-compat)", model=model)
 
-            import warnings
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
-                gemini_model = GenerativeModel(model)
+            response = self.gemini_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=8192,
+            )
 
-                generation_config = GenerationConfig(
-                    temperature=temperature,
-                    max_output_tokens=8192,
-                    top_p=0.9,
-                    top_k=40
-                )
-
-                response = gemini_model.generate_content(
-                    prompt,
-                    generation_config=generation_config
-                )
-
-            result = response.text
-            self.logger.debug(f"Vertex AI response received", length=len(result))
-
+            result = response.choices[0].message.content
+            self.logger.debug(f"Gemini response received", length=len(result))
             return result
 
         except Exception as e:
             self.logger.error(
-                f"Vertex AI Gemini call failed",
+                f"Gemini API call failed",
                 model=model,
                 error=str(e),
                 exc_info=True
@@ -247,11 +236,9 @@ class BaseSefirah(ABC):
         Returns:
             Response text
         """
-        # Fallback to Gemini if Claude not available
         if not self.claude_available or self.claude_client is None:
-            self.logger.warning(f"Claude not available, using Vertex AI Gemini fallback for this call")
-            # Use gemini-2.5-flash which is available in Vertex AI
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            self.logger.warning("Claude not available, using Gemini fallback")
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
         try:
             self.logger.debug(f"Calling Claude", model=model)
@@ -280,7 +267,7 @@ class BaseSefirah(ABC):
                 error=str(e)
             )
             # Fallback to Gemini on error
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -326,7 +313,7 @@ class BaseSefirah(ABC):
                     "DeepSeek 402 Insufficient Balance — fallback a VertexAI (no se reintenta)",
                     model=model
                 )
-                return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+                return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
             # Otros errores HTTP (429, 5xx) → el decorador @retry los reintenta
             self.logger.error(f"DeepSeek HTTP error {e.status_code}", model=model, error=str(e))
             raise
@@ -359,7 +346,7 @@ class BaseSefirah(ABC):
         """
         if not self.grok_available or self.grok_client is None:
             self.logger.warning("Grok unavailable, using VertexAI fallback")
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
         try:
             self.logger.debug(f"Calling Grok (xAI)", model=model)
@@ -379,7 +366,7 @@ class BaseSefirah(ABC):
                 model=model,
                 error=str(e)
             )
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -400,7 +387,7 @@ class BaseSefirah(ABC):
         """
         if not self.mistral_available or self.mistral_client is None:
             self.logger.warning("Mistral unavailable, using VertexAI fallback")
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
         try:
             self.logger.debug(f"Calling Mistral", model=model)
@@ -420,7 +407,7 @@ class BaseSefirah(ABC):
                 model=model,
                 error=str(e)
             )
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -441,7 +428,7 @@ class BaseSefirah(ABC):
         """
         if not self.openai_available or self.openai_client is None:
             self.logger.warning("OpenAI unavailable, using VertexAI fallback")
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
         try:
             self.logger.debug(f"Calling OpenAI", model=model)
@@ -461,7 +448,7 @@ class BaseSefirah(ABC):
                 model=model,
                 error=str(e)
             )
-            return self.call_gemini(prompt, model="gemini-2.5-pro", temperature=temperature)
+            return self.call_gemini(prompt, model="gemini-2.0-flash", temperature=temperature)
 
     def safe_process(
         self,

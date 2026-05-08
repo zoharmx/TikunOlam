@@ -1,24 +1,22 @@
 """
 Shared AI client initialization (Singleton pattern)
 
-This module ensures AI clients are initialized only once and shared
-across all Sefirot to eliminate redundant initialization overhead.
+Gemini se accede vía su endpoint OpenAI-compatible para evitar
+dependencias de google-auth/vertexai que rompen en este entorno.
 
-Provider distribution (Feb 2026):
-  Keter    → Grok (xAI)
+Provider distribution:
+  Keter    → Gemini (fallback de Grok)
   Chochmah → Mistral
-  Binah    → VertexAI (West) + DeepSeek (East)
-  Chesed   → VertexAI
-  Gevurah  → VertexAI
+  Binah    → Gemini (West) + DeepSeek (East)
+  Chesed   → Gemini
+  Gevurah  → Gemini
   Tiferet  → OpenAI
-  Netzach  → DeepSeek
-  Hod      → VertexAI
+  Netzach  → Gemini
+  Hod      → Gemini
   Yesod    → Mistral
-  Malchut  → Grok (xAI)
-  Fallback → VertexAI
+  Malchut  → Gemini (fallback de Grok)
 """
 
-import vertexai
 from openai import OpenAI
 from typing import Optional
 from tikun.config import TikunConfig
@@ -26,128 +24,95 @@ from tikun.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Global flags / singleton clients
-_vertex_initialized = False
+# Gemini OpenAI-compatible base URL
+_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+_gemini_client:   Optional[OpenAI] = None
 _deepseek_client: Optional[OpenAI] = None
-_grok_client: Optional[OpenAI] = None
-_mistral_client: Optional[OpenAI] = None
-_openai_client: Optional[OpenAI] = None
+_grok_client:     Optional[OpenAI] = None
+_mistral_client:  Optional[OpenAI] = None
+_openai_client:   Optional[OpenAI] = None
 
 
 def init_vertex_ai(config: TikunConfig) -> None:
-    """
-    Initialize Vertex AI (Google Gemini) once globally.
+    """Compatibility shim — delegates to get_gemini_client."""
+    get_gemini_client(config)
 
-    Subsequent calls are no-ops.
 
-    Args:
-        config: Tikun configuration
-    """
-    global _vertex_initialized
-
-    if _vertex_initialized:
-        logger.debug("Vertex AI already initialized, skipping")
-        return
-
-    try:
-        logger.info("Initializing Vertex AI (first time)...")
-        vertexai.init(
-            project=config.gcp_project_id,
-            location=config.gcp_location
+def get_gemini_client(config: TikunConfig) -> OpenAI:
+    """Gemini via OpenAI-compatible endpoint (singleton)."""
+    global _gemini_client
+    if _gemini_client is None:
+        logger.info("Initializing Gemini (OpenAI-compat) client...")
+        _gemini_client = OpenAI(
+            api_key=config.gemini_api_key,
+            base_url=_GEMINI_BASE_URL,
         )
-        _vertex_initialized = True
-        logger.info(f"Vertex AI initialized successfully",
-                   project=config.gcp_project_id,
-                   location=config.gcp_location)
-    except Exception as e:
-        logger.error(f"Failed to initialize Vertex AI", error=str(e), exc_info=True)
-        raise
+        logger.info("Gemini client ready")
+    return _gemini_client
 
 
 def get_deepseek_client(config: TikunConfig) -> OpenAI:
-    """
-    Get shared DeepSeek client (singleton).
-
-    Args:
-        config: Tikun configuration
-
-    Returns:
-        OpenAI client configured for DeepSeek
-    """
+    """DeepSeek client (singleton)."""
     global _deepseek_client
-
     if _deepseek_client is None:
-        logger.info("Initializing DeepSeek client (first time)...")
+        if not config.deepseek_api_key:
+            raise ValueError("DEEPSEEK_API_KEY not configured")
+        logger.info("Initializing DeepSeek client...")
         _deepseek_client = OpenAI(
             api_key=config.deepseek_api_key,
-            base_url="https://api.deepseek.com"
+            base_url="https://api.deepseek.com",
         )
-        logger.info("DeepSeek client initialized successfully")
-
+        logger.info("DeepSeek client ready")
     return _deepseek_client
 
 
 def get_grok_client(config: TikunConfig) -> OpenAI:
-    """
-    Get shared Grok (xAI) client (singleton).
-    Used by: Keter, Malchut
-    """
+    """Grok (xAI) client (singleton)."""
     global _grok_client
-
     if _grok_client is None:
         if not config.grok_api_key:
             raise ValueError("GROK_API_KEY not configured")
-        logger.info("Initializing Grok (xAI) client (first time)...")
+        logger.info("Initializing Grok (xAI) client...")
         _grok_client = OpenAI(
             api_key=config.grok_api_key,
-            base_url="https://api.x.ai/v1"
+            base_url="https://api.x.ai/v1",
         )
-        logger.info("Grok client initialized successfully")
-
+        logger.info("Grok client ready")
     return _grok_client
 
 
 def get_mistral_client(config: TikunConfig) -> OpenAI:
-    """
-    Get shared Mistral client (singleton).
-    Used by: Chochmah, Yesod
-    """
+    """Mistral client (singleton)."""
     global _mistral_client
-
     if _mistral_client is None:
         if not config.mistral_api_key:
             raise ValueError("MISTRAL_API_KEY not configured")
-        logger.info("Initializing Mistral client (first time)...")
+        logger.info("Initializing Mistral client...")
         _mistral_client = OpenAI(
             api_key=config.mistral_api_key,
-            base_url="https://api.mistral.ai/v1"
+            base_url="https://api.mistral.ai/v1",
         )
-        logger.info("Mistral client initialized successfully")
-
+        logger.info("Mistral client ready")
     return _mistral_client
 
 
 def get_openai_client(config: TikunConfig) -> OpenAI:
-    """
-    Get shared OpenAI client (singleton).
-    Used by: Tiferet
-    """
+    """OpenAI client (singleton)."""
     global _openai_client
-
     if _openai_client is None:
         if not config.openai_api_key:
             raise ValueError("OPENAI_API_KEY not configured")
-        logger.info("Initializing OpenAI client (first time)...")
+        logger.info("Initializing OpenAI client...")
         _openai_client = OpenAI(api_key=config.openai_api_key)
-        logger.info("OpenAI client initialized successfully")
-
+        logger.info("OpenAI client ready")
     return _openai_client
 
 
 def reset_clients() -> None:
-    """Reset all clients (for testing purposes)."""
-    global _vertex_initialized, _deepseek_client, _grok_client, _mistral_client, _openai_client
-    _vertex_initialized = False
+    """Reset all clients (for testing)."""
+    global _gemini_client, _deepseek_client, _grok_client, _mistral_client, _openai_client
+    _gemini_client = None
     _deepseek_client = None
     _grok_client = None
     _mistral_client = None

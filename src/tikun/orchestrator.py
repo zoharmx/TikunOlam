@@ -156,6 +156,22 @@ class TikunOrchestrator:
             )
             raise
 
+    @property
+    def sefirot(self) -> Dict[str, Any]:
+        """Return dict of all initialized Sefirot instances."""
+        return {
+            'keter':    self.keter,
+            'chochmah': self.chochmah,
+            'binah':    self.binah,
+            'chesed':   self.chesed,
+            'gevurah':  self.gevurah,
+            'tiferet':  self.tiferet,
+            'netzach':  self.netzach,
+            'hod':      self.hod,
+            'yesod':    self.yesod,
+            'malchut':  self.malchut,
+        }
+
     def process(
         self,
         scenario: str,

@@ -71,8 +71,7 @@ STRATEGY ANALYSIS:
         self.logger.info("Processing Netzach (Strategy)")
         model = self.config.get_model_for_sefirah("netzach")
         prompt = self.get_prompt(scenario, previous_results)
-        # Call AI — DeepSeek primary, VertexAI fallback
-        response = self.call_deepseek(prompt, model=model)
+        response = self.call_gemini(prompt, model=model)
         return self._parse_response(response)
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
@@ -99,7 +98,11 @@ STRATEGY ANALYSIS:
                 "raw_strategy": response
             }
 
-            return NetzachResult(**result_data).model_dump()
+            result = NetzachResult(**result_data).model_dump()
+            # Compatibility: build implementation_strategy string from strategies + vision
+            strat_lines = [s.get("name", "") + ": " + s.get("description", "") for s in result.get("strategies", [])]
+            result["implementation_strategy"] = result.get("long_term_vision", "") or "\n".join(strat_lines)
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Netzach response", error=str(e))

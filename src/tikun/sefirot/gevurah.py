@@ -152,7 +152,12 @@ Return at least 3 risks now.
                 "raw_risk": response
             }
 
-            return GevurahResult(**result_data).model_dump()
+            result = GevurahResult(**result_data).model_dump()
+            # Compatibility aliases for test scripts
+            sev_map = {"none": 0, "low": 25, "medium": 50, "high": 75, "critical": 95}
+            result["severity_score"] = sev_map.get(result.get("risk_severity", "medium"), 50)
+            result["red_lines"] = result.get("boundaries_identified", [])
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Gevurah response", error=str(e))

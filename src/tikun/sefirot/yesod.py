@@ -165,7 +165,19 @@ INTEGRATION SUMMARY:
                 "integration_summary": summary
             }
 
-            return YesodResult(**result_data).model_dump()
+            result = YesodResult(**result_data).model_dump()
+
+            # Compatibility fields expected by test scripts
+            critical_gaps = [g for g in result.get("gaps_identified", []) if g.get("severity") == "critical"]
+            result["critical_gaps_count"] = len(critical_gaps)
+            result["blocked_by_critical_gaps"] = len(critical_gaps) > 0
+
+            rec = result.get("go_no_go_recommendation", {})
+            rec["block_reason"] = rec.get("rationale", "")
+            rec["conditions_if_conditional"] = rec.get("conditions", [])
+            result["go_no_go_recommendation"] = rec
+
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Yesod response", error=str(e), exc_info=True)

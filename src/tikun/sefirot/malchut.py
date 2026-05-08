@@ -199,7 +199,24 @@ FINAL SUMMARY:
                 "final_summary": summary
             }
 
-            return MalchutResult(**result_data).model_dump()
+            result = MalchutResult(**result_data).model_dump()
+
+            # Compatibility aliases expected by test scripts
+            quality_map = {"poor": 25, "acceptable": 50, "good": 75, "excellent": 90}
+            result["manifestation_score"] = quality_map.get(result["manifestation_quality"], 50)
+            result["executive_summary"] = result["final_summary"]
+            result["go_no_go_decision"] = {
+                "decision": result["decision"],
+                "rationale": result["decision_rationale"],
+                "conditions": result["conditions"],
+            }
+            result["immediate_actions"] = [{"action": s} for s in result["implementation_steps"]]
+            if result["decision"] in ("NO_GO",):
+                result["status"] = f"BLOCKED — {result['decision']}"
+            else:
+                result["status"] = result["decision"]
+
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Malchut response", error=str(e), exc_info=True)

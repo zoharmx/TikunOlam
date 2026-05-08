@@ -84,7 +84,10 @@ OPPORTUNITY ANALYSIS:
                 "raw_opportunity": response
             }
 
-            return ChesedResult(**result_data).model_dump()
+            result = ChesedResult(**result_data).model_dump()
+            # Compatibility alias for test scripts
+            result["expansion_score"] = result["expansion_potential"]
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Chesed response", error=str(e))

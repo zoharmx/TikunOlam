@@ -43,6 +43,11 @@ class Binah(BaseSefirah):
         """
         return self._get_simple_prompt(scenario, previous_results)
 
+    def should_use_sigma(self, scenario: str) -> bool:
+        """Determine whether BinahSigma mode should be activated."""
+        is_geopolitical, geo_score, _ = detect_geopolitical_content(scenario)
+        return is_geopolitical and geo_score >= self.config.binah_sigma_threshold
+
     def process(
         self,
         scenario: str,
@@ -51,15 +56,11 @@ class Binah(BaseSefirah):
         """Process scenario through Binah."""
         self.logger.info("Processing Binah (Understanding)")
 
-        # Detect if scenario is geopolitical
-        is_geopolitical, geo_score, keywords = detect_geopolitical_content(scenario)
+        # Allow external override of sigma activation (e.g. test scripts)
+        use_sigma = self.should_use_sigma(scenario)
 
-        if is_geopolitical and geo_score >= self.config.binah_sigma_threshold:
-            self.logger.info(
-                f"BinahSigma activated",
-                score=geo_score,
-                keywords_matched=len(keywords)
-            )
+        if use_sigma:
+            self.logger.info("BinahSigma activated")
             return self._process_sigma(scenario, previous_results)
         else:
             self.logger.info("BinahSigma not activated, using simple mode")
@@ -377,8 +378,11 @@ ANALYSIS:
                 "raw_understanding": f"=== WESTERN PERSPECTIVE ===\n{west_response}\n\n=== EASTERN PERSPECTIVE ===\n{east_response}"
             }
 
-            binah_result = BinahResult(**result_data)
-            return binah_result.model_dump()
+            result = BinahResult(**result_data).model_dump()
+            # Compatibility: expose sigma synthesis as top-level 'synthesis'
+            sigma = result.get("sigma_synthesis") or {}
+            result["synthesis"] = sigma.get("transcendent_synthesis", "")
+            return result
 
         except Exception as e:
             self.logger.error("Failed to synthesize Sigma results", error=str(e), exc_info=True)

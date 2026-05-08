@@ -99,7 +99,15 @@ COMMUNICATION ANALYSIS:
                 "raw_communication": response
             }
 
-            return HodResult(**result_data).model_dump()
+            result = HodResult(**result_data).model_dump()
+            # Compatibility: build key_messages from channels + transparency
+            key_msgs = []
+            for ch in result.get("channels", []):
+                key_msgs.extend(ch.get("key_messages", []))
+            if not key_msgs:
+                key_msgs = result.get("transparency_requirements", [])
+            result["key_messages"] = key_msgs[:6]
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Hod response", error=str(e))

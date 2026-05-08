@@ -102,7 +102,10 @@ SYNTHESIS ANALYSIS:
                 "raw_synthesis": response
             }
 
-            return TiferetResult(**result_data).model_dump()
+            result = TiferetResult(**result_data).model_dump()
+            # Compatibility alias for test scripts
+            result["balanced_approach"] = result.get("recommended_approach", "")
+            return result
 
         except Exception as e:
             self.logger.error("Failed to parse Tiferet response", error=str(e))
